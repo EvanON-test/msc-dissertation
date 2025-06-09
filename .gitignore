@@ -1,0 +1,32 @@
+# macOS
+.DS_Store
+
+# Python / Anaconda
+__pycache__/
+*.pyc
+.env
+venv/
+env/
+anaconda3/
+
+# PyCharm IDE
+.idea/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+# macOS
+.DS_Store
+
+# Python / Anaconda
+__pycache__/
+*.pyc
+.env
+venv/
+env/
+anaconda3/
+
+# PyCharm IDE
+.idea/
+
+# Jupyter Notebook
+.ipynb_checkpoints
