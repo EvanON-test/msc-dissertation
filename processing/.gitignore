@@ -1,10 +1,15 @@
-# ignore everything
-*
+## Don't ignore everything
+#*
 
 # but not this
 !.gitignore
 !*.py
 !*.md
+# New additions
+!*.mp4
+!*.png
+!*.tflite
+!*.txt
 
 # even if they are in subdirs
 !*/
