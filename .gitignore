@@ -14,3 +14,11 @@ anaconda3/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+
+
+# New additions
+!*.mp4
+!*.png
+!*.tflite
+!*.py
+!*.txt

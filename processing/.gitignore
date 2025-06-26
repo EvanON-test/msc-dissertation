@@ -1,10 +1,10 @@
-## ignore everything
-#*
-#
-## but not this
-#!.gitignore
-#!*.py
-#!*.md
-#
-## even if they are in subdirs
-#!*/
+# ignore everything
+*
+
+# but not this
+!.gitignore
+!*.py
+!*.md
+
+# even if they are in subdirs
+!*/
