@@ -1,0 +1,13 @@
+{
+    "model": "small",
+    "height": 180,
+    "width": 320,
+    "class_number": 2,
+    "learning_rate": 0.001,
+    "batch": 4,
+    "epochs": 20,
+    "train_dir": "data/train",
+    "eval_dir": "data/eval",
+    "save_dir": "save",
+    "weights": ""
+}
