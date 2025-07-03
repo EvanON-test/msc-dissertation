@@ -1,6 +1,8 @@
 ## Don't ignore everything
 #*
 
+#TODO: Clean up gitignore's
+
 # but not this
 !.gitignore
 !*.py

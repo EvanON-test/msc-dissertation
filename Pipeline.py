@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 import shutil
 import time
@@ -12,101 +13,106 @@ import processing.keypoint_detector_util as kd
 
 COMPLETED_FILES_LOG = "./CompletedFiles.txt"
 
+#Updated this into a class
+class Pipeline:
+    @staticmethod
+    def run(data_path, monitor=None):
 
-def run(data_path):
-    
-    try:
-        with open(COMPLETED_FILES_LOG, 'r') as cfl:
-            completed_files = [line.strip('\n') for line in cfl.readlines()]
-    except FileNotFoundError:
-        f = open(COMPLETED_FILES_LOG, "x")
-        completed_files = []
+        try:
+            with open(COMPLETED_FILES_LOG, 'r') as cfl:
+                completed_files = [line.strip('\n') for line in cfl.readlines()]
+        except FileNotFoundError:
+            f = open(COMPLETED_FILES_LOG, "x")
+            completed_files = []
 
-    
-    for filename in os.listdir(data_path):
-        if filename not in completed_files and '.mp4' in filename:
-            print(f"Processing {filename}")
-            process(data_path+'/'+filename)
-            completed_files.append(filename)
-            with open(COMPLETED_FILES_LOG, 'a') as cfl: 
-                cfl.write(filename+"\n")
-            print(f"Finished processing {filename}")
-    print("\nProcessed all available Files!!\n")
+        for filename in os.listdir(data_path):
+            if filename not in completed_files and '.mp4' in filename:
+                print(f"Processing {filename}")
+                Pipeline.process(data_path+'/'+filename)
+                completed_files.append(filename)
+                with open(COMPLETED_FILES_LOG, 'a') as cfl:
+                    cfl.write(filename+"\n")
+                print(f"Finished processing {filename}")
+        print("\nProcessed all available Files!!\n")
 
 
+    @staticmethod
+    def process(video_path):
 
-def process(video_path):
+        start_time = time.time()
 
-    start_time = time.time()
+        bc_start_time = time.time()
 
-    bc_start_time = time.time()
+        print("\nLocating contigs...")
+        signal = bc.process(cv2.VideoCapture(video_path))
 
-    print("\nLocating contigs...")
-    signal = bc.process(cv2.VideoCapture(video_path))
+        bc_time = time.time() - bc_start_time
 
-    bc_time = time.time() - bc_start_time
+        fs_start_time = time.time()
 
-    fs_start_time = time.time()
+        print("\nExtracting best frames...")
+        extracted_frame_idxs = fs.process(
+            signal, cv2.VideoCapture(video_path))
+        del signal
 
-    print("\nExtracting best frames...")
-    extracted_frame_idxs = fs.process(
-        signal, cv2.VideoCapture(video_path))
-    del signal
+        fs_time = time.time() - fs_start_time
 
-    fs_time = time.time() - fs_start_time
+        od_start_time = time.time()
 
-    od_start_time = time.time()
+        # make sure its empty
+        savepoint = "./processing/extracted_frames/"
+        shutil.rmtree(savepoint)
+        os.mkdir(savepoint)
 
-    # make sure its empty
-    savepoint = "./processing/extracted_frames/"
-    shutil.rmtree(savepoint)
-    os.mkdir(savepoint)
+        video = cv2.VideoCapture(video_path)
 
-    video = cv2.VideoCapture(video_path)
+        print("EXTRACTED: ")
+        print(len(extracted_frame_idxs))
+        print(len(extracted_frame_idxs[0]))
+        print(len(extracted_frame_idxs[1]))
 
-    print("EXTRACTED: ")
-    print(len(extracted_frame_idxs))
-    print(len(extracted_frame_idxs[0]))
-    print(len(extracted_frame_idxs[1]))
+        # take indices of top frames only
+        for i in range(len(extracted_frame_idxs[0])):
+            video.set(cv2.CAP_PROP_POS_FRAMES, extracted_frame_idxs[0][i])
+            success, image = video.read()
+            # extracted_top_frames[i] = full_frames[extracted_frame_idxs[1][i]]
+            cv2.imwrite("./processing/extracted_frames/{}.png".format(i), image)
+        # delete frames np array
+        del video
+        del extracted_frame_idxs
+        # can also delete raw video here
 
-    # take indeces of top frames only
-    for i in range(len(extracted_frame_idxs[0])):
-        video.set(cv2.CAP_PROP_POS_FRAMES, extracted_frame_idxs[0][i])
-        success, image = video.read()
-        # extracted_top_frames[i] = full_frames[extracted_frame_idxs[1][i]]
-        cv2.imwrite("./processing/extracted_frames/{}.png".format(i), image)
-    # delete frames np array
-    del video
-    del extracted_frame_idxs
-    # can also delete raw video here
+        print("\nCropping to region of interest...")
+        roi_frames = od.process(savepoint)
 
-    print("\nCropping to region of interest...")
-    roi_frames = od.process(savepoint)
+        print("ROI FRAMES: ", roi_frames.shape)
 
-    print("ROI FRAMES: ", roi_frames.shape)
+        od_time = time.time() - od_start_time
 
-    od_time = time.time() - od_start_time
+        kd_start_time = time.time()
 
-    kd_start_time = time.time()
+        print("\nDetecting keypoints...")
+        coordinates = kd.process(roi_frames)
 
-    print("\nDetecting keypoints...")
-    coordinates = kd.process(roi_frames)
+        kd_time = time.time() - kd_start_time
 
-    kd_time = time.time() - kd_start_time
+        print("\n{}\n".format(coordinates))
+        print(coordinates.shape)
 
-    print("\n{}\n".format(coordinates))
-    print(coordinates.shape)
+        pipeline_time = time.time() - start_time
+        print("\nFinished!\nPipeline took {} seconds to process \"{}\"".format(
+            round(pipeline_time, 2), video_path))
+        print(
+            "\nBC: {:.4f}s ({:.2f}%)"
+            "\nFS: {:.4f}s ({:.2f}%)"
+            "\nOD: {:.4f}s ({:.2f}%)"
+            "\nKD: {:.4f}s ({:.2f}%)\n".format(
+            bc_time, (bc_time/pipeline_time)*100,
+            fs_time, (fs_time/pipeline_time)*100,
+            od_time, (od_time/pipeline_time)*100,
+            kd_time, (kd_time/pipeline_time)*100))
 
-    pipeline_time = time.time() - start_time
-    print("\nFinished!\nPipeline took {} seconds to process \"{}\"".format(
-        round(pipeline_time, 2), video_path))
-    print(
-        "\nBC: {:.4f}s ({:.2f}%)"
-        "\nFS: {:.4f}s ({:.2f}%)"
-        "\nOD: {:.4f}s ({:.2f}%)"
-        "\nKD: {:.4f}s ({:.2f}%)\n".format(
-        bc_time, (bc_time/pipeline_time)*100,
-        fs_time, (fs_time/pipeline_time)*100,
-        od_time, (od_time/pipeline_time)*100,
-        kd_time, (kd_time/pipeline_time)*100))
 
+if __name__ == "__main__":
+    pipeline = Pipeline()
+    pipeline.run('processing/video')
