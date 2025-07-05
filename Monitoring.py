@@ -63,7 +63,7 @@ class BaseMonitor(Thread):
                     log_data = hardware_metrics
                     writer.writerow(log_data)
         except Exception as e:
-            print("Error occurred in the monitoring thread as: " + e)
+            print("Error occurred in the monitoring thread as: " + str(e))
 
     def stop(self):
         """Stops the monitoring thread (through breaking the while loop in the Run function)"""
@@ -93,6 +93,7 @@ class PiMonitor(BaseMonitor):
         metrics['gpu_percent'] = None
         metrics['gpu_temp'] = None
         metrics['power_used'] = None
+        return metrics
 
 
 
@@ -164,7 +165,7 @@ class Monitoring:
         try:
             Pipeline.run(data_path=data_path, monitor=monitor)
         except Exception as e:
-            print("Error occurred in the monitoring thread as: " + e)
+            print("Error occurred in the monitoring thread as: " + str(e))
         finally:
             #Stops the monitor thread after Pipeline has finished, or Pipeline has failed
             monitor.stop()
