@@ -4,7 +4,7 @@
 #TODO: UPDATE README - delete old Pipeline.py version (once new is tested) finish the update version and the monitoring version
 #TODO: tidy comments please
 
-import argparse
+
 import numpy as np
 import time
 import cv2
@@ -129,7 +129,7 @@ class Monitoring:
     def platform_type():
         """Detects the hardware type"""
         machine = platform.machine()
-        if machine == "armv71":
+        if machine == "armv7l":
             return "pi"
         elif machine == "aarch64":
             return "jetson"
@@ -141,7 +141,8 @@ class Monitoring:
         """Runs the entire monitoring session: Creates filepath, checks platform type, starts monitoring and runs the pipeline process (which is to be monitored)
         before finally stopping the process"""
         #Designates the output directory and generates the filename (which is the timestamp of when it is run)
-        output_directory = "Benchmark/"
+        output_directory = "benchmark/"
+        os.makedirs(output_directory, exist_ok=True)
         creation_time = datetime.datetime.now()
         timestamp = creation_time.strftime("%d-%m-%Y_%H-%M")#Removed the seconds
         output_file = os.path.join(output_directory, timestamp + ".csv")
