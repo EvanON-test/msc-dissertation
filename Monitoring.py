@@ -124,11 +124,8 @@ class NanoMonitor(BaseMonitor):
         #gets the nano metrics using the jtop service object
         metrics['cpu_temp'] = self.jetson.temperature.get('CPU').get('temp')
         metrics['gpu_temp'] = self.jetson.temperature.get('GPU').get('temp')
-        try:
-            print(self.jetson.power)
-            metrics['power_used'] = self.jetson.power.get('tot')
-        except Exception as e:
-            print("Error occurred trying to get nano power metrics as: " + str(e))
+        #Power metrics not possible on this iteration of NVIDIA's device
+        metrics['power_used'] = "N/A"
         return metrics
 
 #TODO: update this approach to a more general hardware approach (needed if you introduce newer Pi's to the mix)
