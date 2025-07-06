@@ -114,7 +114,7 @@ class NanoMonitor(BaseMonitor):
         self.jetson.start()
         super().run()
         #Stops the jtop service object from running once the run has been completed
-        if self.jetson.is_running():
+        if self.jetson:
             self.jetson.close()
 
     def get_metrics(self):
