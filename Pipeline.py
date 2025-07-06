@@ -27,7 +27,11 @@ class Pipeline:
         for filename in os.listdir(data_path):
             if filename not in completed_files and '.mp4' in filename:
                 print(f"Processing {filename}")
-                Pipeline.process(data_path+'/'+filename)
+                #Checks if monitor instance, runs appropriate option
+                if monitor:
+                    Pipeline.process(data_path + '/' + filename, monitor)
+                else:
+                    Pipeline.process(data_path+'/'+filename)
                 completed_files.append(filename)
                 with open(COMPLETED_FILES_LOG, 'a') as cfl:
                     cfl.write(filename+"\n")
@@ -36,13 +40,16 @@ class Pipeline:
 
 
     @staticmethod
-    def process(video_path):
+    def process(video_path, monitor=None):
 
         start_time = time.time()
 
         bc_start_time = time.time()
 
         print("\nLocating contigs...")
+        #updates current stage value (if monitor instance running)
+        if monitor:
+            monitor.current_stage = "Binary Classifier"
         signal = bc.process(cv2.VideoCapture(video_path))
 
         bc_time = time.time() - bc_start_time
@@ -50,6 +57,8 @@ class Pipeline:
         fs_start_time = time.time()
 
         print("\nExtracting best frames...")
+        if monitor:
+            monitor.current_stage = "Frame Selector"
         extracted_frame_idxs = fs.process(
             signal, cv2.VideoCapture(video_path))
         del signal
@@ -57,7 +66,8 @@ class Pipeline:
         fs_time = time.time() - fs_start_time
 
         od_start_time = time.time()
-
+        if monitor:
+            monitor.current_stage = "Object Detector"
         # make sure its empty
         savepoint = "./processing/extracted_frames/"
         shutil.rmtree(savepoint)
@@ -91,6 +101,8 @@ class Pipeline:
         kd_start_time = time.time()
 
         print("\nDetecting keypoints...")
+        if monitor:
+            monitor.current_stage = "Keypoint Detector"
         coordinates = kd.process(roi_frames)
 
         kd_time = time.time() - kd_start_time

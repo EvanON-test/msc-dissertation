@@ -45,6 +45,8 @@ class BaseMonitor(Thread):
         self.interval = 2 #TODO: Review (through testing) whether this is an appropriate value
         #creates a threading event that is needed to stop the thread externaly
         self.stop_event = Event()
+        self.current_stage = None
+
 
 
     def run(self):
@@ -52,7 +54,7 @@ class BaseMonitor(Thread):
         try:
             with open(self.output_file, 'w') as csvfile:
                 #Defines the column headers in the resultant csv file
-                fieldnames = ['timestamp', 'cpu_percent', 'cpu_temp', 'gpu_percent', 'gpu_temp', 'ram_percent', 'power_used']
+                fieldnames = ['timestamp', 'model_stage','cpu_percent', 'cpu_temp', 'gpu_percent', 'gpu_temp', 'ram_percent', 'power_used']
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
 
@@ -60,6 +62,7 @@ class BaseMonitor(Thread):
                 while not self.stop_event.wait(self.interval):
                     hardware_metrics = self.get_metrics()
                     hardware_metrics['timestamp'] = time.strftime("%d-%m-%Y_%H-%M-%S")
+                    hardware_metrics['model_stage'] = self.current_stage
                     log_data = hardware_metrics
                     writer.writerow(log_data)
         except Exception as e:
@@ -87,7 +90,8 @@ class PiMonitor(BaseMonitor):
         #Gets the common metrics
         metrics = super().get_metrics()
         #Uses pi specific approach to get cpu temperature
-        metrics['cpu_temp'] = CPUTemperature().temperature
+        cpu_temp_pi = CPUTemperature().temperature
+        metrics['cpu_temp'] = round(cpu_temp_pi, 1)
         #TODO: Reinvestigate the options for these later
         #Sets the currently non-gatherable metrics to None
         metrics['gpu_percent'] = None
@@ -144,8 +148,9 @@ class Monitoring:
         #Designates the output directory and generates the filename (which is the timestamp of when it is run)
         output_directory = "benchmark/"
         os.makedirs(output_directory, exist_ok=True)
+        #TODO: The Pi has to query a server for time so time and dates not accurate (although it is still increments so the files should be chronological regardless)
         creation_time = datetime.datetime.now()
-        timestamp = creation_time.strftime("%d-%m-%Y_%H-%M")#Removed the seconds
+        timestamp = creation_time.strftime("%Y-%m-%d_%H-%M")#Changed this after first working run. Should order files correctly until/if i change the time access approach
         output_file = os.path.join(output_directory, timestamp + ".csv")
 
         #Gets the platform type before checking and then creating teh appropriate monitor object
