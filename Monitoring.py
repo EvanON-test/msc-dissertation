@@ -1,4 +1,4 @@
-#TODO: Need to access the timings of the models and add them to the CSV file.
+#TODO: Add the whole timings of the run to the csv. (use the basic format already in pipeline)
 #TODO: The Hardware checks are for the specific version, potentially improve by adding checks for different versions of Pi's and Nanos (important for Pi GPU check etc)
 
 #TODO: UPDATE README - delete old Pipeline.py version (once new is tested) finish the update version and the monitoring version
@@ -122,9 +122,10 @@ class NanoMonitor(BaseMonitor):
         # Gets the common metrics
         metrics = super().get_metrics()
         #gets the nano metrics using the jtop service object
-        metrics['cpu_temp'] = self.jetson.temperature.get('CPU')
+        metrics['cpu_temp'] = self.jetson.temperature.get('CPU').get('temp')
         metrics['gpu_temp'] = self.jetson.temperature.get('GPU').get('temp')
         try:
+            print(self.jetson.power)
             metrics['power_used'] = self.jetson.power.get('tot')
         except Exception as e:
             print("Error occurred trying to get nano power metrics as: " + str(e))
