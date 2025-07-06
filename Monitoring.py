@@ -94,9 +94,9 @@ class PiMonitor(BaseMonitor):
         metrics['cpu_temp'] = round(cpu_temp_pi, 1)
         #TODO: Reinvestigate the options for these later
         #Sets the currently non-gatherable metrics to None
-        metrics['gpu_percent'] = None
-        metrics['gpu_temp'] = None
-        metrics['power_used'] = None
+        metrics['gpu_percent'] = "N/A"
+        metrics['gpu_temp'] = "N/A"
+        metrics['power_used'] = "N/A"
         return metrics
 
 
@@ -123,8 +123,11 @@ class NanoMonitor(BaseMonitor):
         metrics = super().get_metrics()
         #gets the nano metrics using the jtop service object
         metrics['cpu_temp'] = self.jetson.temperature.get('CPU')
-        metrics['gpu_temp'] = self.jetson.temperature.get('GPU')
-        metrics['power_used'] = self.jetson.power.get('tot', {}).get('power')
+        metrics['gpu_temp'] = self.jetson.temperature.get('GPU').get('temp')
+        try:
+            metrics['power_used'] = self.jetson.power.get('tot')
+        except Exception as e:
+            print("Error occurred trying to get nano power metrics as: " + str(e))
         return metrics
 
 #TODO: update this approach to a more general hardware approach (needed if you introduce newer Pi's to the mix)

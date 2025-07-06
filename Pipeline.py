@@ -124,6 +124,8 @@ class Pipeline:
             kd_time, (kd_time/pipeline_time)*100))
 
 
+
+
 if __name__ == "__main__":
     pipeline = Pipeline()
     pipeline.run('processing/video')
