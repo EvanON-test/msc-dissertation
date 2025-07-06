@@ -124,7 +124,7 @@ class NanoMonitor(BaseMonitor):
         #gets the nano metrics using the jtop service object
         metrics['cpu_temp'] = self.jetson.temperature.get('CPU')
         metrics['gpu_temp'] = self.jetson.temperature.get('GPU')
-        metrics['power_used'] = self.jetson.power_used.get('tot', {}).get('power')
+        metrics['power_used'] = self.jetson.power.get('tot', {}).get('power')
         return metrics
 
 #TODO: update this approach to a more general hardware approach (needed if you introduce newer Pi's to the mix)
