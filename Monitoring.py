@@ -1,6 +1,8 @@
+#Maybe Later
 #TODO: Add the whole timings of the run to the csv. (use the basic format already in pipeline)
-#TODO: The Hardware checks are for the specific version, potentially improve by adding checks for different versions of Pi's and Nanos (important for Pi GPU check etc)
 
+#Definetly do SOON
+#TODO:include actual amount for cpu and ram?
 #TODO: UPDATE README - delete old Pipeline.py version (once new is tested) finish the update version and the monitoring version
 #TODO: tidy comments please
 
@@ -42,7 +44,7 @@ class BaseMonitor(Thread):
         super().__init__()
         self.output_file = output_file
         #hardcoded interval (in seconds), to be used as time between each log entry
-        self.interval = 2 #TODO: Review (through testing) whether this is an appropriate value
+        self.interval = 2
         #creates a threading event that is needed to stop the thread externaly
         self.stop_event = Event()
         self.current_stage = None
@@ -149,7 +151,7 @@ class Monitoring:
         #Designates the output directory and generates the filename (which is the timestamp of when it is run)
         output_directory = "benchmark/"
         os.makedirs(output_directory, exist_ok=True)
-        #TODO: The Pi has to query a server for time so time and dates not accurate (although it is still increments so the files should be chronological regardless)
+        #NOTE: The Pi has to query a server for time, thus time and date are not accurate (although it is still increments so the files are chronological regardless)
         creation_time = datetime.datetime.now()
         timestamp = creation_time.strftime("%Y-%m-%d_%H-%M")#Changed this after first working run. Should order files correctly until/if i change the time access approach
         output_file = os.path.join(output_directory, timestamp + ".csv")
