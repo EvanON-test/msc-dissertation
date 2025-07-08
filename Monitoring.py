@@ -3,7 +3,6 @@
 
 #Definetly do SOON
 #TODO:include actual amount for cpu and ram?
-#TODO: UPDATE README - delete old Pipeline.py version (once new is tested) finish the update version and the monitoring version
 #TODO: tidy comments please
 
 
@@ -18,6 +17,7 @@ import psutil
 import csv
 import datetime
 from threading import Thread, Event
+import argparse
 
 #Utilised try bocks to allow for failure, due to the wrong hardware
 #jtop is a nano specific library for accessing hardware metrics
@@ -145,7 +145,7 @@ class Monitoring:
             return "unknown"
 
     @staticmethod
-    def run(data_path):
+    def run(data_path, runs):
         """Runs the entire monitoring session: Creates filepath, checks platform type, starts monitoring and runs the pipeline process (which is to be monitored)
         before finally stopping the process"""
         #Designates the output directory and generates the filename (which is the timestamp of when it is run)
@@ -171,7 +171,7 @@ class Monitoring:
 
         #Uses the imported Pipelines run function to run the processing on the data with a monitor instance as input
         try:
-            Pipeline.run(data_path=data_path, monitor=monitor)
+            Pipeline.run(data_path=data_path, monitor=monitor, runs=1)
         except Exception as e:
             print("Error occurred in the monitoring thread as: " + str(e))
         finally:
@@ -181,8 +181,12 @@ class Monitoring:
 
 
 if __name__ == "__main__":
-    monitoring = Monitoring()
-    monitoring.run('processing/video')
+    # monitoring = Monitoring()
+    # monitoring.run('processing/video')
+    #An updated approach. Argparse approach means the number of runs can added to the cli command
+    parser = argparse.ArgumentParser(description='Run a CV pipeline with a monitoring session for a set number of runs')
+    args = parser.parse_args()
+    Monitoring.run(data_path="processing/video", runs=args.runs)
 
 
 
