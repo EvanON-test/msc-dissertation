@@ -139,6 +139,6 @@ class Pipeline:
 
 
 if __name__ == "__main__":
-    #TODO: potentially introduce a args approach here for conformity (although not needed)
+    #TODO: potentially introduce an args approach here for conformity (although not needed)
     pipeline = Pipeline()
     pipeline.run('processing/video')

@@ -44,8 +44,10 @@ and original CV Pipeline processes concurrently.
 
 Runs the following code block:
 
-    if __name__ == "__main__":
-        monitoring = Monitoring()
-        monitoring.run('processing/video')
+    parser = argparse.ArgumentParser(description='Run a CV pipeline with a monitoring session for a set number of runs')
+    parser.add_argument("--runs", type=int, default=1 ,help="Number of runs to run the pipeline for")
+    args = parser.parse_args()
+    Monitoring.run(data_path="processing/video", runs=args.runs)
 
-Where 'processing/video' is the data path of video files to be processed.
+Where 'processing/video' is the data path of video files to be processed, andnd number of runs (N) can be defined in the cli command using '--runs N'
+
