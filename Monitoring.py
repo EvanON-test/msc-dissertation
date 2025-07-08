@@ -185,6 +185,7 @@ if __name__ == "__main__":
     # monitoring.run('processing/video')
     #An updated approach. Argparse approach means the number of runs can added to the cli command
     parser = argparse.ArgumentParser(description='Run a CV pipeline with a monitoring session for a set number of runs')
+    parser.add_argument("--runs", type=int, default=1 ,help="Number of runs to run the pipeline for")
     args = parser.parse_args()
     Monitoring.run(data_path="processing/video", runs=args.runs)
 
