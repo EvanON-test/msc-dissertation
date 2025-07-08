@@ -33,6 +33,7 @@ class Pipeline:
                     print(f"Processing {filename}. Run: {run_count}/{runs}")
                     Pipeline.process(data_path + '/' + filename, monitor)
                     print(f"\nProcessed {filename} for Run: {run_count}/{runs}\n")
+                    run_count += 1
             print(f"\nFinished processing for a total of: {runs}\n")
         else:
             for filename in os.listdir(data_path):
