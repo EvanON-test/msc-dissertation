@@ -31,14 +31,9 @@ class Pipeline:
             while run_count < runs:
                 for filename in os.listdir(data_path):
                     print(f"Processing {filename}. Run: {run_count}/{runs}")
-                    #Checks if monitor instance, runs appropriate option
-                    if monitor:
-                        Pipeline.process(data_path + '/' + filename, monitor)
-                    else:
-                        Pipeline.process(data_path+'/'+filename)
-                    completed_files.append(filename)
-                print(f"\nProcessed {filename} for Run: {run_count}/{runs}\n")
-            print(f"\nFinished processing {filename} for a total of: {runs}\n")
+                    Pipeline.process(data_path + '/' + filename, monitor)
+                    print(f"\nProcessed {filename} for Run: {run_count}/{runs}\n")
+            print(f"\nFinished processing for a total of: {runs}\n")
         else:
             for filename in os.listdir(data_path):
                 if filename not in completed_files and '.mp4' in filename:
