@@ -171,7 +171,7 @@ class Monitoring:
 
         #Uses the imported Pipelines run function to run the processing on the data with a monitor instance as input
         try:
-            Pipeline.run(data_path=data_path, monitor=monitor, runs=1)
+            Pipeline.run(data_path=data_path, monitor=monitor, runs=runs)
         except Exception as e:
             print("Error occurred in the monitoring thread as: " + str(e))
         finally:
