@@ -49,5 +49,5 @@ Runs the following code block:
     args = parser.parse_args()
     Monitoring.run(data_path="processing/video", runs=args.runs)
 
-Where 'processing/video' is the data path of video files to be processed, andnd number of runs (N) can be defined in the cli command using '--runs N'
+Where 'processing/video' is the data path of video files to be processed, and number of runs (N) can be defined in the cli command using '--runs N'
 
