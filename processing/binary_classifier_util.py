@@ -20,6 +20,12 @@ BATCH_SIZE = 1
 def rescale_image(image):
     return cv2.resize(image, (LOW_RES_WIDTH, LOW_RES_HEIGHT))
 
+#TODO: verify this approach works
+def rescale_image_gpu(image):
+    gpu_image = cv2.cuda_GpuMat()
+    gpu_image.upload(image)
+    gpu_image_resized = cv2.resize(gpu_image, (LOW_RES_WIDTH, LOW_RES_HEIGHT))
+    return gpu_image_resized
 
 # reshape in tf compatible format
 def tensorflow_reshape(batch):
@@ -44,9 +50,16 @@ def classify_video(video, model):
         for b in range(0, BATCH_SIZE):
             if success:
                 # grayscale and rescale
-                batch[b] = rescale_image(
-                    cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
-                success, image = video.read()
+                try:
+                    batch[b] = rescale_image_gpu(
+                        cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
+                    success, image = video.read()
+                    print("GPU utilisation CONFIRMED!")
+                except Exception as e :
+                    batch[b] = rescale_image(
+                        cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
+                    success, image = video.read()
+                    print("CPU utilisation. Error due to: " + str(e))
 
         tf_batch = tensorflow_reshape(batch)
         model['classifier'].set_tensor(
