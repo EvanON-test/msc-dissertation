@@ -24,8 +24,9 @@ def rescale_image(image):
 def rescale_image_gpu(image):
     gpu_image = cv2.cuda_GpuMat()
     gpu_image.upload(image)
-    gpu_image_resized = cv2.resize(gpu_image, (LOW_RES_WIDTH, LOW_RES_HEIGHT))
-    return gpu_image_resized
+    gpu_image_resized = cv2.cuda.resize(gpu_image, (LOW_RES_WIDTH, LOW_RES_HEIGHT))
+    result = gpu_image_resized.download()
+    return result
 
 # reshape in tf compatible format
 def tensorflow_reshape(batch):
