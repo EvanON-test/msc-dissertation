@@ -8,6 +8,13 @@ import sys
 import os
 
 
+def rescale_image_gpu(image, target_size=(640,640)):
+    gpu_image = cv2.cuda_GpuMat()
+    gpu_image.upload(image)
+    gpu_image_resized = cv2.cuda.resize(gpu_image, target_size)
+    result = gpu_image_resized.download()
+    return result
+
 def process(savepoint):
 
     cropped_frames = []
@@ -41,8 +48,14 @@ def process(savepoint):
         new_im.paste(Image.fromarray(np.uint8(true_scale_image)), (0, pos_y))
         expanded_image = np.array(new_im)[...,:3]
 
+
         # rescale to 640, 640
-        modified_image = cv2.resize(expanded_image, (640,640))
+        try:
+            modified_image = rescale_image_gpu(expanded_image)
+            print("GPU used")
+        except Exception as e :
+            modified_image = cv2.resize(expanded_image, (640,640))
+            print("CPU used due to: " + str(e))
 
         input_data = np.reshape(modified_image, (1, 640, 640, 3))
 

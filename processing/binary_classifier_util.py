@@ -20,13 +20,13 @@ BATCH_SIZE = 1
 def rescale_image(image):
     return cv2.resize(image, (LOW_RES_WIDTH, LOW_RES_HEIGHT))
 
-#TODO: verify this approach works
-def rescale_image_gpu(image):
-    gpu_image = cv2.cuda_GpuMat()
-    gpu_image.upload(image)
-    gpu_image_resized = cv2.cuda.resize(gpu_image, (LOW_RES_WIDTH, LOW_RES_HEIGHT))
-    result = gpu_image_resized.download()
-    return result
+#TODO: verify this approach works - IT DOES! HOWEVER in its current state actually increases running time
+# def rescale_image_gpu(image):
+#     gpu_image = cv2.cuda_GpuMat()
+#     gpu_image.upload(image)
+#     gpu_image_resized = cv2.cuda.resize(gpu_image, (LOW_RES_WIDTH, LOW_RES_HEIGHT))
+#     result = gpu_image_resized.download()
+#     return result
 
 # reshape in tf compatible format
 def tensorflow_reshape(batch):
