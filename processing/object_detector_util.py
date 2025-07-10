@@ -7,13 +7,13 @@ import cv2
 import sys
 import os
 
-
-def rescale_image_gpu(image, target_size=(640,640)):
-    gpu_image = cv2.cuda_GpuMat()
-    gpu_image.upload(image)
-    gpu_image_resized = cv2.cuda.resize(gpu_image, target_size)
-    result = gpu_image_resized.download()
-    return result
+##GPU - rescale to 640, 640. No current benefit
+# def rescale_image_gpu(image, target_size=(640,640)):
+#     gpu_image = cv2.cuda_GpuMat()
+#     gpu_image.upload(image)
+#     gpu_image_resized = cv2.cuda.resize(gpu_image, target_size)
+#     result = gpu_image_resized.download()
+#     return result
 
 def process(savepoint):
 
@@ -49,13 +49,13 @@ def process(savepoint):
         expanded_image = np.array(new_im)[...,:3]
 
 
+        # # GPU - rescale to 640, 640
+        # try:
+        #     modified_image = rescale_image_gpu(expanded_image)
+        #     print("GPU used")
+        # except Exception as e :
         # rescale to 640, 640
-        try:
-            modified_image = rescale_image_gpu(expanded_image)
-            print("GPU used")
-        except Exception as e :
-            modified_image = cv2.resize(expanded_image, (640,640))
-            print("CPU used due to: " + str(e))
+        modified_image = cv2.resize(expanded_image, (640,640))
 
         input_data = np.reshape(modified_image, (1, 640, 640, 3))
 
