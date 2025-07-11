@@ -16,7 +16,7 @@ LOW_RES_HEIGHT = 180
 
 # #TODO: test GPU approach with a larger batch size
 # BATCH_SIZE = 1
-BATCH_SIZE = 8
+BATCH_SIZE = 1
 
 CUDA_AVAILABLE = cv2.cuda.getCudaEnabledDeviceCount() > 0
 if CUDA_AVAILABLE:
