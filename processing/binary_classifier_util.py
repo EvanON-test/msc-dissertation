@@ -14,24 +14,23 @@ import os
 LOW_RES_WIDTH = 320
 LOW_RES_HEIGHT = 180
 
-# #TODO: tes ta larger batch size here on cpu
+# #TODO: test a larger batch size here on cpu
 # BATCH_SIZE = 1
-BATCH_SIZE = 16
+BATCH_SIZE = 8
 
-
+gpu_image = cv2.cuda_GpuMat()
+gpu_grey = cv2.cuda_GpuMat()
+gpu_resized = cv2.cuda_GpuMat()
 
 def rescale_image(image):
     return cv2.resize(image, (LOW_RES_WIDTH, LOW_RES_HEIGHT))
 
-# TODO: verify this approach works - IT DOES! HOWEVER in its current state actually increases running time
-# def rescale_image_gpu(image):
-#     gpu_image = cv2.cuda_GpuMat()
-#     gpu_image.upload(image)
-#     gpu_image_resized = cv2.cuda.resize(gpu_image, (LOW_RES_WIDTH, LOW_RES_HEIGHT))
-#     result = gpu_image_resized.download()
-#     return result
-
-#TODO: Batch rescale
+# TODO: Verify this approach works
+def rescale_image_gpu(image):
+    gpu_image.upload(image)
+    cv2.cuda.cvtColor(gpu_image, cv2.COLOR_BGR2GRAY, gpu_grey)
+    gpu_image_resized = cv2.cuda.resize(gpu_grey, (LOW_RES_WIDTH, LOW_RES_HEIGHT), gpu_resized)
+    return gpu_image_resized.download()
 
 
 # reshape in tf compatible format
@@ -57,16 +56,16 @@ def classify_video(video, model):
         for b in range(0, BATCH_SIZE):
             if success:
                 # GPU - grayscale and rescale
-                # try:
-                #     batch[b] = rescale_image_gpu(
-                #         cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
-                #     success, image = video.read()
-                #     print("GPU utilisation CONFIRMED!")
-                # except Exception as e :
+                try:
+                    batch[b] = rescale_image_gpu(image)
+                    success, image = video.read()
+                    print("GPU utilisation CONFIRMED!")
+                except Exception as e :
                 # grayscale and rescale
-                batch[b] = rescale_image(
-                    cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
-                success, image = video.read()
+                    batch[b] = rescale_image(
+                        cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
+                    success, image = video.read()
+                    print("GPU utilisation CONFIRMED!")
 
 
         tf_batch = tensorflow_reshape(batch)
