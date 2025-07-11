@@ -33,13 +33,16 @@ def rescale_image_gpu(image):
     try:
         if image is None or image.size == 0:
             raise Exception("Image is empty")
+        # gpu_grey = cv2.cuda_GpuMat()
+        # cv2.cuda.cvtColor(gpu_image, cv2.COLOR_BGR2GRAY, dst=gpu_grey)
+        grey_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         gpu_image = cv2.cuda_GpuMat()
-        gpu_grey = cv2.cuda_GpuMat()
         gpu_resized = cv2.cuda_GpuMat()
-        gpu_image.upload(image)
-        cv2.cuda.cvtColor(gpu_image, cv2.COLOR_BGR2GRAY, dst=gpu_grey)
-        cv2.cuda.resize(gpu_grey, (LOW_RES_WIDTH, LOW_RES_HEIGHT), dst=gpu_resized)
-        return gpu_resized.download()
+
+        gpu_image.upload(grey_image)
+        cv2.cuda.resize(gpu_image, (LOW_RES_WIDTH, LOW_RES_HEIGHT), dst=gpu_resized)
+        result = gpu_resized.download()
+        return result
     except Exception as e:
         print("GPU processing failed due to: " + str(e))
 
