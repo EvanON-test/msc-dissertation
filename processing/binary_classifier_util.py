@@ -29,8 +29,8 @@ def rescale_image(image):
 def rescale_image_gpu(image):
     gpu_image.upload(image)
     cv2.cuda.cvtColor(gpu_image, cv2.COLOR_BGR2GRAY, gpu_grey)
-    gpu_image_resized = cv2.cuda.resize(gpu_grey, (LOW_RES_WIDTH, LOW_RES_HEIGHT), gpu_resized)
-    return gpu_image_resized.download()
+    cv2.cuda.resize(gpu_grey, (LOW_RES_WIDTH, LOW_RES_HEIGHT), gpu_resized)
+    return gpu_resized.download()
 
 
 # reshape in tf compatible format
