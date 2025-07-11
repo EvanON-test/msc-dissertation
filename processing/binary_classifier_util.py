@@ -14,9 +14,9 @@ import os
 LOW_RES_WIDTH = 320
 LOW_RES_HEIGHT = 180
 
-# #TODO: test a larger batch size here on cpu
+# #TODO: test GPU approach with a larger batch size
 # BATCH_SIZE = 1
-BATCH_SIZE = 8
+BATCH_SIZE = 16
 
 gpu_image = cv2.cuda_GpuMat()
 gpu_grey = cv2.cuda_GpuMat()
