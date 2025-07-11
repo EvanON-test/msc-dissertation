@@ -16,7 +16,7 @@ LOW_RES_HEIGHT = 180
 
 # #TODO: test GPU approach with a larger batch size
 # BATCH_SIZE = 1
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 
 gpu_image = cv2.cuda_GpuMat()
 gpu_grey = cv2.cuda_GpuMat()
