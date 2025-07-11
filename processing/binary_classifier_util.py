@@ -65,7 +65,7 @@ def classify_video(video, model):
                     batch[b] = rescale_image(
                         cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
                     success, image = video.read()
-                    print("GPU utilisation CONFIRMED!")
+                    print("CPU utilisation CONFIRMED!")
 
 
         tf_batch = tensorflow_reshape(batch)
