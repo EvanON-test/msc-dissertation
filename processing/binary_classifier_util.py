@@ -31,6 +31,8 @@ def rescale_image(image):
 # TODO: Verify this approach works
 def rescale_image_gpu(image):
     try:
+        if image is None or image.size == 0:
+            raise Exception("Image is empty")
         gpu_image = cv2.cuda_GpuMat()
         gpu_grey = cv2.cuda_GpuMat()
         gpu_resized = cv2.cuda_GpuMat()
