@@ -18,9 +18,15 @@ LOW_RES_HEIGHT = 180
 # BATCH_SIZE = 1
 BATCH_SIZE = 64
 
-gpu_image = cv2.cuda_GpuMat()
-gpu_grey = cv2.cuda_GpuMat()
-gpu_resized = cv2.cuda_GpuMat()
+CUDA_AVAILABLE = cv2.cuda.getCudaEnabledDeviceCount() > 0
+if CUDA_AVAILABLE:
+    try:
+        gpu_image = cv2.cuda_GpuMat()
+        gpu_grey = cv2.cuda_GpuMat()
+        gpu_resized = cv2.cuda_GpuMat()
+        print("CUDA initialised successfully")
+    except Exception as e:
+        print("CUDA not initialised due to:" + str(e))
 
 def rescale_image(image):
     return cv2.resize(image, (LOW_RES_WIDTH, LOW_RES_HEIGHT))
@@ -59,13 +65,13 @@ def classify_video(video, model):
                 try:
                     batch[b] = rescale_image_gpu(image)
                     success, image = video.read()
-                    print("GPU utilisation CONFIRMED!")
+                    # print("GPU utilisation CONFIRMED!")
                 except Exception as e :
                 # grayscale and rescale
                     batch[b] = rescale_image(
                         cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
                     success, image = video.read()
-                    print("CPU utilisation CONFIRMED!" + str(e))
+                    # print("CPU utilisation CONFIRMED!" + str(e))
 
 
         tf_batch = tensorflow_reshape(batch)
