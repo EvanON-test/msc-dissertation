@@ -21,9 +21,6 @@ BATCH_SIZE = 64
 CUDA_AVAILABLE = cv2.cuda.getCudaEnabledDeviceCount() > 0
 if CUDA_AVAILABLE:
     try:
-        gpu_image = cv2.cuda_GpuMat()
-        gpu_grey = cv2.cuda_GpuMat()
-        gpu_resized = cv2.cuda_GpuMat()
         print("CUDA initialised successfully")
     except Exception as e:
         print("CUDA not initialised due to:" + str(e))
@@ -34,6 +31,9 @@ def rescale_image(image):
 # TODO: Verify this approach works
 def rescale_image_gpu(image):
     try:
+        gpu_image = cv2.cuda_GpuMat()
+        gpu_grey = cv2.cuda_GpuMat()
+        gpu_resized = cv2.cuda_GpuMat()
         gpu_image.upload(image)
         cv2.cuda.cvtColor(gpu_image, cv2.COLOR_BGR2GRAY, dst=gpu_grey)
         cv2.cuda.resize(gpu_grey, (LOW_RES_WIDTH, LOW_RES_HEIGHT), dst=gpu_resized)
