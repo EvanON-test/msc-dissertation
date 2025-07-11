@@ -14,7 +14,10 @@ import os
 LOW_RES_WIDTH = 320
 LOW_RES_HEIGHT = 180
 
-BATCH_SIZE = 1
+# #TODO: tes ta larger batch size here on cpu
+# BATCH_SIZE = 1
+BATCH_SIZE = 4
+
 
 
 def rescale_image(image):
@@ -27,6 +30,9 @@ def rescale_image(image):
 #     gpu_image_resized = cv2.cuda.resize(gpu_image, (LOW_RES_WIDTH, LOW_RES_HEIGHT))
 #     result = gpu_image_resized.download()
 #     return result
+
+#TODO: Batch rescale
+
 
 # reshape in tf compatible format
 def tensorflow_reshape(batch):
@@ -43,8 +49,8 @@ def classify_video(video, model):
         sys.exit()
 
     total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-
     preds = np.zeros((total_frames))
+
     for i in range(0, total_frames, BATCH_SIZE):
         # ignore channels as images will be grayscale
         batch = np.zeros((BATCH_SIZE, LOW_RES_HEIGHT, LOW_RES_WIDTH))
