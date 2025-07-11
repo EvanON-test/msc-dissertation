@@ -16,7 +16,7 @@ LOW_RES_HEIGHT = 180
 
 # #TODO: tes ta larger batch size here on cpu
 # BATCH_SIZE = 1
-BATCH_SIZE = 4
+BATCH_SIZE = 8
 
 
 
