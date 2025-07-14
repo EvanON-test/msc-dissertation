@@ -14,21 +14,21 @@ import os
 LOW_RES_WIDTH = 320
 LOW_RES_HEIGHT = 180
 
-# #TODO: test GPU approach with a larger batch size
-# BATCH_SIZE = 1
+# #TODO: test GPU approach with a larger batch size (if you can get it to work agiain)
 BATCH_SIZE = 1
+# GPU_BATCH_SIZE = 8
 
-CUDA_AVAILABLE = cv2.cuda.getCudaEnabledDeviceCount() > 0
-if CUDA_AVAILABLE:
-    try:
-        print("CUDA initialised successfully")
-    except Exception as e:
-        print("CUDA not initialised due to:" + str(e))
+# CUDA_AVAILABLE = cv2.cuda.getCudaEnabledDeviceCount() > 0
+# if CUDA_AVAILABLE:
+#     try:
+#         print("CUDA initialised successfully")
+#     except Exception as e:
+#         print("CUDA not initialised due to:" + str(e))
 
 def rescale_image(image):
     return cv2.resize(image, (LOW_RES_WIDTH, LOW_RES_HEIGHT))
 
-# TODO: Verify this approach works
+# TODO: This GPU approach is clearly wrong (NOT proper batch). Paused 14/07
 def rescale_image_gpu(image):
     try:
         if image is None or image.size == 0:
@@ -69,17 +69,18 @@ def classify_video(video, model):
         batch = np.zeros((BATCH_SIZE, LOW_RES_HEIGHT, LOW_RES_WIDTH))
         for b in range(0, BATCH_SIZE):
             if success:
+                # TODO: Return to this approach and
                 # GPU - grayscale and rescale
-                try:
-                    batch[b] = rescale_image_gpu(image)
-                    success, image = video.read()
-                    # print("GPU utilisation CONFIRMED!")
-                except Exception as e :
+                # try:
+                #     batch[b] = rescale_image_gpu(image)
+                #     success, image = video.read()
+                #     # print("GPU utilisation CONFIRMED!")
+                # except Exception as e :
                 # grayscale and rescale
-                    batch[b] = rescale_image(
-                        cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
-                    success, image = video.read()
-                    # print("CPU utilisation CONFIRMED!" + str(e))
+                batch[b] = rescale_image(
+                    cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
+                success, image = video.read()
+
 
 
         tf_batch = tensorflow_reshape(batch)
