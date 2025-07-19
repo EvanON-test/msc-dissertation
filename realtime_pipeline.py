@@ -17,7 +17,7 @@ class RealtimePipeline:
     def realtime_test(self):
         try:
             #It's been a long day :'(
-            gst_stream = ["gst-launch-1.0", "nvarguscamerasrc", "!", "nvegltransform", "!", "nveglglessink", "-e" ]
+            gst_stream = ["gst-launch-1.0", "nvarguscamerasrc", "!", "nvvidconv", "!", "nvegltransform", "!", "nveglglessink", "-e" ]
             subprocess.run(gst_stream)
         except Exception as e:
             print("Fell at the first hurdle due to: " + str(e))
