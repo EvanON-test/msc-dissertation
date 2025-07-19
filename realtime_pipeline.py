@@ -24,6 +24,10 @@ class RealtimePipeline:
 
         if (capture.isOpened() == False):
             print("Error opening video stream or file")
+            try:
+                capture_2 = cv2.VideoCapture(0)
+            except Exception as e:
+                    print("FAILED ON BOTH ACCOUNTS, due to: " + str(e))
 
         while capture.isOpened():
             ret, frame = capture.read()
