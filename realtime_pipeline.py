@@ -16,6 +16,10 @@ import processing.keypoint_detector_util as kd
 class RealtimePipeline:
     def realtime_test(self):
         try:
+            #Note - has been working when run on the nano in explicitly...need to be clear on the display
+            #force to correct display
+            os.environ['DISPLAY'] = ':0'
+
             #It's been a long day :'(
             gst_stream = ["gst-launch-1.0", "nvarguscamerasrc", "!", "nvvidconv", "!", "nvegltransform", "!", "nveglglessink", "-e" ]
             subprocess.run(gst_stream)
