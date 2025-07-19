@@ -14,7 +14,7 @@ Versions:
 Main file for executing the pipeline.
 Can take two arguments. 
 
-### `sudo python3.9 Pipeline.py`
+### `sudo python3.9 pipeline.py`
 
 Runs the following code block:
 
@@ -29,10 +29,10 @@ A file is written to keep track of processed videos in case of interruption and 
 This should be called by the catchcam scripts.
 
 Each component in the pipeline has a corresponding utils file for invoking the model / function. 
-These are referenced within 'Pipeline.py'.
+These are referenced within 'pipeline.py'.
 
 
-# Monitoring.py
+# monitoring.py
 
 Main file for the monitoring capability.
 
@@ -40,7 +40,7 @@ Includes the different Monitor classes (Base, Pi and Nano) as well as the main
 monitoring thread which detects hardware type before running both the monitor processes
 and original CV Pipeline processes concurrently.
 
-### `sudo python3.9 Monitoring.py`
+### `sudo python3.9 monitoring.py`
 
 Runs the following code block:
 

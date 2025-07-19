@@ -1,3 +1,4 @@
+#TODO: Update ReadME on runs and detail how it is built for the current singular 30s file (would need to adjust approach if longer/more files)
 import numpy as np
 import shutil
 import time

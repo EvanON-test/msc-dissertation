@@ -11,7 +11,7 @@ import time
 import cv2
 import os
 
-from Pipeline import Pipeline
+from pipeline import Pipeline
 import platform
 import psutil
 import csv
