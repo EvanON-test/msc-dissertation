@@ -1,5 +1,3 @@
-from sys import exception
-
 import numpy as np
 import shutil
 import time
@@ -18,7 +16,7 @@ class RealtimePipeline:
     def realtime_test(self):
         try:
             gst_stream = ["gst-launch1.0", "nvarguscamerasrc", "!", "nvegltransform", "!", "nveglglessink" "-e" ]
-        except exception as e:
+        except Exception as e:
             print("Fell at the first hurdle due to: " + str(e))
 
 
