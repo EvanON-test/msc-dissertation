@@ -4,6 +4,7 @@ import time
 import cv2
 import sys
 import os
+import subprocess
 
 import processing.binary_classifier_util as bc
 import processing.frame_selector_util as fs
@@ -15,7 +16,9 @@ import processing.keypoint_detector_util as kd
 class RealtimePipeline:
     def realtime_test(self):
         try:
+            #It's been a long day :'(
             gst_stream = ["gst-launch1.0", "nvarguscamerasrc", "!", "nvegltransform", "!", "nveglglessink" "-e" ]
+            subprocess.run(gst_stream)
         except Exception as e:
             print("Fell at the first hurdle due to: " + str(e))
 
