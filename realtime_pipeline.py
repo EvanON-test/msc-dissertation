@@ -43,16 +43,18 @@ class RealtimePipeline:
                     ret, frame = capture.read()
                     cv2.imshow('frame', frame)
                     cv2.imwrite(f"{savepoint}0.png", frame)
-
-                    print("\nCropping to region of interest...")
-                    roi_frames = od.process(savepoint)
-                    print("ROI FRAMES: ", roi_frames.shape)
-                    print("\nDetecting keypoints...")
-                    coordinates = kd.process(roi_frames)
-                    print("\n{}\n".format(coordinates))
-                    print(coordinates.shape)
-                    if cv2.waitKey(1) & 0xFF == ord('q'):
-                        break
+                    try:
+                        print("\nCropping to region of interest...")
+                        roi_frames = od.process(savepoint)
+                        print("ROI FRAMES: ", roi_frames.shape)
+                        print("\nDetecting keypoints...")
+                        coordinates = kd.process(roi_frames)
+                        print("\n{}\n".format(coordinates))
+                        print(coordinates.shape)
+                        if cv2.waitKey(1) & 0xFF == ord('q'):
+                            break
+                    except Exception as e:
+                        print(f"Error has arisen due to: {e}")
         except Exception as e:
             print(f"Error has arisen due to: {e}")
         finally:
