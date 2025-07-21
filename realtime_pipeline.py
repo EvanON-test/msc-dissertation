@@ -22,9 +22,7 @@ class RealtimePipeline:
         # self.gst_stream = ["gst-launch-1.0", "nvarguscamerasrc", "!", "nvvidconv", "!", "nvegltransform", "!",
         #               "nveglglessink", "-e"]
         #TODO: Not tested yet...try monday after built it out a little
-        self.gst_stream = ["nvarguscamerasrc sensor_id=0", "!", "video/x-raw(memory:NVMM),width=1280, height=720,framerate=30/1",
-                           "!", "nvvidconv flip-method=0", "!", "video/x-raw,width=640, height=360", "!", "nvvidconv", "!",
-                           "nvegltransform", "!", "nveglglessink -e"]
+        self.gst_stream = "nvarguscamerasrc sensor_id=0, !, video/x-raw(memory:NVMM),width=1280, height=720,framerate=30/1, !, nvvidconv flip-method=0, !, video/x-raw,width=640, height=360, !, nvvidconv, !, nvegltransform, !, nveglglessink -e"
 
     def process(self):
         # make sure its empty - (FROM PIPELINE)
