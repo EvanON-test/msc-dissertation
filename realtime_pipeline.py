@@ -1,3 +1,5 @@
+#TODO: update readme again
+#TODO: cite the code sections you have used formally (gst, gfg etc)
 import numpy as np
 import shutil
 import time
@@ -6,68 +8,55 @@ import sys
 import os
 import subprocess
 
-import processing.binary_classifier_util as bc
-import processing.frame_selector_util as fs
+#TODO: After functional testing attempt to 'preload' model/s
 import processing.object_detector_util as od
 import processing.keypoint_detector_util as kd
 
 
 
 class RealtimePipeline:
-    def realtime_test(self):
+    def __init__(self):
+        #Forces os's primary display (negates issues arising via ssh given commands)
+        os.environ['DISPLAY'] = ':0'
+        #Initial test approach
+        # self.gst_stream = ["gst-launch-1.0", "nvarguscamerasrc", "!", "nvvidconv", "!", "nvegltransform", "!",
+        #               "nveglglessink", "-e"]
+        #TODO: Not tested yet...try monday after built it out a little
+        self.gst_stream = ["nvarguscamerasrc sensor_id=0", "!", "video/x-raw(memory:NVMM),width=1280, height=720,framerate=30/1",
+                           "!", "nvvidconv flip-method=0", "!", "video/x-raw,width=640, height=360", "!", "nvvidconv", "!",
+                           "nvegltransform", "!", "nveglglessink -e"]
+
+    def process(self):
+        # make sure its empty - (FROM PIPELINE)
+        savepoint = "./processing/extracted_frames/"
+        shutil.rmtree(savepoint)
+        os.mkdir(savepoint)
+
+        capture = cv2.VideoCapture(self.gst_stream, cv2.CAP_GSTREAMER)
+        print("Camera Opened Successfully")
+
         try:
-            #Note - has been working when run on the nano in explicitly...need to be clear on the display
-            #force to correct display
-            os.environ['DISPLAY'] = ':0'
+            while True:
+                    ret, frame = capture.read()
+                    cv2.imshow('frame', frame)
+                    cv2.imwrite(f"{savepoint}0.png", frame)
 
-            #It's been a long day :'(
-            gst_stream = ["gst-launch-1.0", "nvarguscamerasrc", "!", "nvvidconv", "!", "nvegltransform", "!", "nveglglessink", "-e" ]
-            subprocess.run(gst_stream)
+                    print("\nCropping to region of interest...")
+                    roi_frames = od.process(savepoint)
+                    print("ROI FRAMES: ", roi_frames.shape)
+                    print("\nDetecting keypoints...")
+                    coordinates = kd.process(roi_frames)
+                    print("\n{}\n".format(coordinates))
+                    print(coordinates.shape)
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
         except Exception as e:
-            print("Fell at the first hurdle due to: " + str(e))
-
-
-
-
-
-
-
-
-        # gst_stream = "nvarguscamerasrc sensor_id=0 ! \
-        # 'video/x-raw(memory:NVMM),width=1920, height=1080, framerate=30/1' ! \
-        # nvvidconv flip-method=0 ! 'video/x-raw,width=960, height=540' ! \
-        # nvvidconv ! nvegltransform ! nveglglessink -e"
-        #
-        # capture = cv2.VideoCapture(gst_stream, cv2.CAP_GSTREAMER)
-        #
-        # if (capture.isOpened() == False):
-        #     print("Error opening video stream or file")
-        #     try:
-        #         capture_2 = cv2.VideoCapture(0)
-        #     except Exception as e:
-        #             print("FAILED ON BOTH ACCOUNTS, due to: " + str(e))
-        #
-        # while capture.isOpened():
-        #     ret, frame = capture.read()
-        #     if ret == True:
-        #         cv2.imshow('frame', frame)
-        #
-        #         if cv2.waitKey(1) & 0xFF == ord('q'):
-        #             break
-        #     else:
-        #         break
-        #
-        # capture.release()
-        # cv2.destroyAllWindows()
-
-
-
-
-
-
-
+            print(f"Error has arisen due to: {e}")
+        finally:
+            capture.release()
+            cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
     realtime_pipeline = RealtimePipeline()
-    realtime_pipeline.realtime_test()
+    realtime_pipeline.process()
