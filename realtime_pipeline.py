@@ -23,7 +23,7 @@ class RealtimePipeline:
         #               "nveglglessink", "-e"]
 
         # self.gst_stream = "nvarguscamerasrc sensor_id=0, !, video/x-raw(memory:NVMM),width=1280, height=720,framerate=30/1, !, nvvidconv flip-method=0, !, video/x-raw,width=640, height=360, !, nvvidconv, !, video/x-raw,format=BGS, !, appsink -e"
-        self.gst_stream = "nvarguscamerasrc sensor_id=0 ! video/x-raw(memory:NVMM),width=1280,height=720,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGR ! appsink"
+        self.gst_stream = "nvarguscamerasrc ! nvvidconv ! video/x-raw,format=BGR ! appsink"
 
 
     def process(self):
