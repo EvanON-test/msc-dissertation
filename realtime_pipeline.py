@@ -21,10 +21,9 @@ class RealtimePipeline:
         #Initial test approach
         # self.gst_stream = ["gst-launch-1.0", "nvarguscamerasrc", "!", "nvvidconv", "!", "nvegltransform", "!",
         #               "nveglglessink", "-e"]
-        #TODO: Not tested yet...try monday after built it out a little
 
         # self.gst_stream = "nvarguscamerasrc sensor_id=0, !, video/x-raw(memory:NVMM),width=1280, height=720,framerate=30/1, !, nvvidconv flip-method=0, !, video/x-raw,width=640, height=360, !, nvvidconv, !, video/x-raw,format=BGS, !, appsink -e"
-        self.gst_stream = "nvarguscamerasrc sensor_id=0 ! video/x-raw(memory:NVMM),width=1280, height=720,framerate=30/1 ! nvvidconv flip-method=0 ! video/x-raw,width=640, height=360, format=BGRx ! nvvidconv ! video/x-raw,format=BGR ! appsink -e"
+        self.gst_stream = "nvarguscamerasrc sensor_id=0 ! video/x-raw(memory:NVMM),width=1280, height=720,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGR ! appsink"
 
 
     def process(self):
@@ -32,9 +31,11 @@ class RealtimePipeline:
         savepoint = "./processing/extracted_frames/"
         shutil.rmtree(savepoint)
         os.mkdir(savepoint)
-
+        #Here leads to later fail
         capture = cv2.VideoCapture(self.gst_stream, cv2.CAP_GSTREAMER)
-        print("Camera Opened Successfully")
+        if capture.isOpened() == False:
+            print("Unable to run gst_stream properly")
+        # print("Camera Opened Successfully")
 
         try:
             while True:
