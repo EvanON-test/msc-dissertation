@@ -47,6 +47,7 @@ class RealtimePipeline:
                         print("\nCropping to region of interest...")
                         try:
                             roi_frames = od.process(savepoint)
+                            print("OD processed successfully!")
                         except Exception as e:
                             print("Potential Error, skipping frame..." + str(e))
                             continue
