@@ -39,7 +39,7 @@ class RealtimePipeline:
         # print("Camera Opened Successfully")
 
         frame_counter = 0
-        process_every_n_frames = 30
+        process_every_n_frames = 60
 
         try:
             while True:
