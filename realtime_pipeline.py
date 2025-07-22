@@ -45,9 +45,13 @@ class RealtimePipeline:
                     cv2.imwrite(f"{savepoint}0.png", frame)
                     try:
                         print("\nCropping to region of interest...")
-                        roi_frames = od.process(savepoint)
-                        if roi_frames.size == 0:
-                            print("No Objects detected, skipping frame...")
+                        try:
+                            roi_frames = od.process(savepoint)
+                        except Exception as e:
+                            print("Potential Error, skipping frame..." + str(e))
+                            continue
+                        if roi_frames is None:
+                            print("roi_frames is none....skipping frame")
                             continue
                         print("ROI FRAMES: ", roi_frames.shape)
                         print("\nDetecting keypoints...")
