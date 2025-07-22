@@ -38,31 +38,36 @@ class RealtimePipeline:
             print("Unable to run gst_stream properly")
         # print("Camera Opened Successfully")
 
+        frame_counter = 0
+        process_every_n_frames = 30
+
         try:
             while True:
                     ret, frame = capture.read()
                     cv2.imshow('frame', frame)
-                    cv2.imwrite(f"{savepoint}0.png", frame)
-                    try:
-                        print("\nCropping to region of interest...")
+                    frame_counter += 1
+                    if frame_counter % process_every_n_frames == 0:
+                        cv2.imwrite(f"{savepoint}0.png", frame)
                         try:
-                            roi_frames = od.process(savepoint)
-                            print("OD processed successfully!")
+                            print("\nCropping to region of interest...")
+                            try:
+                                roi_frames = od.process(savepoint)
+                                print("OD processed successfully!")
+                            except Exception as e:
+                                print("Potential Error, skipping frame..." + str(e))
+                                continue
+                            if roi_frames is None:
+                                print("roi_frames is none....skipping frame")
+                                continue
+                            print("ROI FRAMES: ", roi_frames.shape)
+                            print("\nDetecting keypoints...")
+                            coordinates = kd.process(roi_frames)
+                            print("\n{}\n".format(coordinates))
+                            print(coordinates.shape)
+                            if cv2.waitKey(1) & 0xFF == ord('q'):
+                                break
                         except Exception as e:
-                            print("Potential Error, skipping frame..." + str(e))
-                            continue
-                        if roi_frames is None:
-                            print("roi_frames is none....skipping frame")
-                            continue
-                        print("ROI FRAMES: ", roi_frames.shape)
-                        print("\nDetecting keypoints...")
-                        coordinates = kd.process(roi_frames)
-                        print("\n{}\n".format(coordinates))
-                        print(coordinates.shape)
-                        if cv2.waitKey(1) & 0xFF == ord('q'):
-                            break
-                    except Exception as e:
-                        print(f"Error has arisen due to: {e}")
+                            print(f"Error has arisen due to: {e}")
         except Exception as e:
             print(f"Error has arisen due to: {e}")
         finally:
