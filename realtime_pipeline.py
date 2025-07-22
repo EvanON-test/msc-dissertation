@@ -46,6 +46,9 @@ class RealtimePipeline:
                     try:
                         print("\nCropping to region of interest...")
                         roi_frames = od.process(savepoint)
+                        if roi_frames == 0:
+                            print("No Objects detected, skipping frame...")
+                            continue
                         print("ROI FRAMES: ", roi_frames.shape)
                         print("\nDetecting keypoints...")
                         coordinates = kd.process(roi_frames)
