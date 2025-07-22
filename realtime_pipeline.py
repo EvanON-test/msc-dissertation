@@ -46,7 +46,7 @@ class RealtimePipeline:
                     try:
                         print("\nCropping to region of interest...")
                         roi_frames = od.process(savepoint)
-                        if roi_frames == 0:
+                        if roi_frames.size == 0:
                             print("No Objects detected, skipping frame...")
                             continue
                         print("ROI FRAMES: ", roi_frames.shape)
