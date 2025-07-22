@@ -28,10 +28,10 @@ class RealtimePipeline:
 
 
     def process(self):
-        # make sure its empty - (FROM PIPELINE)
-        savepoint = "./processing/extracted_frames/"
-        shutil.rmtree(savepoint)
-        os.mkdir(savepoint)
+        # # Removed borrowed Original pipeline approach
+        # savepoint = "./processing/extracted_frames/"
+        # shutil.rmtree(savepoint)
+        # os.mkdir(savepoint)
         #Here leads to later fail
         capture = cv2.VideoCapture(self.gst_stream, cv2.CAP_GSTREAMER)
         if capture.isOpened() == False:
@@ -44,14 +44,14 @@ class RealtimePipeline:
         try:
             while True:
                     ret, frame = capture.read()
-                    cv2.imshow('frame', frame)
+                    cv2.imshow('Live Feed', frame)
                     frame_counter += 1
                     if frame_counter % process_every_n_frames == 0:
-                        cv2.imwrite(f"{savepoint}0.png", frame)
+                        # cv2.imwrite(f"{savepoint}0.png", frame)
                         try:
                             print("\nCropping to region of interest...")
                             try:
-                                roi_frames = od.process(savepoint)
+                                roi_frames = od.process(frame)
                                 print("OD processed successfully!")
                             except Exception as e:
                                 print("Potential Error, skipping frame..." + str(e))

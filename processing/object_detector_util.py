@@ -100,11 +100,11 @@ def process(savepoint):
 
         cropped_frames.append(crop)
 
-        #Evan's changes
-        cv2.imshow("crop", crop.astype(np.uint8))
-        cv2.imshow("plot", plot)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+
+        # cv2.imshow("crop", crop.astype(np.uint8))
+        # cv2.imshow("plot", plot)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
 
         # cast coords to int, draw box on image
         # showw("img", plot)
