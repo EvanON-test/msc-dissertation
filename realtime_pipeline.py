@@ -50,6 +50,11 @@ class FrameCaptureThread(Thread):
             while not self.stop_event.is_set():
                 ret, frame = capture.read()
                 cv2.imshow('Live Feed', frame)
+
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    self.stop_event.set()
+                    break
+
                 frame_counter += 1
                 if frame_counter % self.process_every_n_frames == 0:
                     try:
