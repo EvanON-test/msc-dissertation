@@ -1,54 +1,89 @@
-#TODO: update this again
+# TODO: still not finished. Iterate further when you have completed everything
+
 # FISP Working
 
 Working ML components for integration with hardware
 
 Versions:
-- Python 			3.9
-- cv2 				4.5.1
-- numpy 			1.25.2
+- Python 			3.9.18
+- cv2 				4.9.0
+- numpy 			1.26.4
 - tflite_runtime	2.13.0
 - PIL 				10.0.0
 
-# Pipeline.py
+- NB:(Updated 25/07/25 - For Jetson Nano 2GB Developer Edition)
 
-Main file for executing the pipeline.
-Can take two arguments. 
+# pipeline.py - Main file for executing the pipeline.
 
-### `sudo python3.9 pipeline.py`
+A Computer Vision pipeline utilising Binary classifier, frame selector, object detector and keypoint detector models over a saved video file.
 
-Runs the following code block:
+Default implementation
 
-    if __name__ == "__main__":
-        pipeline = Pipeline()
-        pipeline.run('processing/video')
+    Pipeline.run(data_path, monitor=None, runs=1):
 
-Where 'processing/video' is the data path of video files to be processed.
+Where:
+    `data_path`: is the data path of video files to be processed. 
+    `monitor`: is the optional monitoring instance (needed for collecting monitoring data)
+    `runs`: is the number of runs (needed to loop the single available 30 second video to replicate longer videos for monitoring runs)
 
-The function will iterate through each file in the dir until it is finished or is interrupted. 
+Will iterate through each file in the directory until it is finished or is interrupted. 
 A file is written to keep track of processed videos in case of interruption and continuation.
 This should be called by the catchcam scripts.
 
 Each component in the pipeline has a corresponding utils file for invoking the model / function. 
-These are referenced within 'pipeline.py'.
+These are referenced within 'pipeline.py'
+
+## Default Use: `sudo python3.9 pipeline.py`
+## Modified Use: `sudo python3.9 pipeline.py --data_path PATHTOVIDEO --runs 6`
 
 
-# monitoring.py
+# monitoring.py - file for executing the monitoring system.
 
-Main file for the monitoring capability.
+A monitoring system, used in a threaded approach with the Computer Vision pipeline to benchmark its performance.
+Detects hardware (Pi or Nano) and logs their metrics with a default cadence of every 2 seconds as the pipeline runs.
 
-Includes the different Monitor classes (Base, Pi and Nano) as well as the main 
-monitoring thread which detects hardware type before running both the monitor processes
-and original CV Pipeline processes concurrently.
+Default implementation
 
-### `sudo python3.9 monitoring.py`
+    Monitoring.run(data_path, runs):
 
-Runs the following code block:
+Where:
+    `data_path`: is the data path of video files to be processed.
+    `runs`: is the number of runs (needed to loop the single available 30 second video to replicate longer videos for monitoring runs)
 
-    parser = argparse.ArgumentParser(description='Run a CV pipeline with a monitoring session for a set number of runs')
-    parser.add_argument("--runs", type=int, default=1 ,help="Number of runs to run the pipeline for")
-    args = parser.parse_args()
-    Monitoring.run(data_path="processing/video", runs=args.runs)
+Logs:
+    `timestamp`: FORMAT: day - month - year - hour - minute - seconds (Example: 08-07-2025_13-30-31)
+    `model_stage`: The specific model running when the metrics are queried 
+    `cpu_percent`: percentage of CPU in use
+    `ram_percent`percentage of RAM in use
+    `cpu_temp`: temperature of CPU
+    `gpu_temp`: temperature of GPU (for Nano only)
+    `power_used`: amount of power used(Not able to implement without outside hardware)
 
-Where 'processing/video' is the data path of video files to be processed, and number of runs (N) can be defined in the cli command using '--runs N'
+# TODO:Add more context here once finalised
 
+
+## Default Use: `sudo python3.9 monitoring.py`
+## Modified Use: `sudo python3.9 monitoring.py --data_path PATHTOVIDEO --runs 6`
+
+
+
+
+
+# realtime_pipeline.py - file for executing the pipeline in real time.
+
+A Computer Vision pipeline utilising Object detector and Keypoint detector models in real time.
+Utilises a multi-threaded approach to allow for display and processing of frames concurrently
+
+Default implementation
+
+    RealtimePipeline.run(process_every_n_frames=60):
+
+Where:
+    `process_every_n_frames`: is the cadence at which frames should be processed (to mitigate for performance issues)
+
+
+# TODO:Add more context here once finalised
+
+
+## Default Use: `sudo python3.9 realtime_pipeline.py`
+## Modified Use: `sudo python3.9 realtime_pipeline.py --process_every_n_frames 120`

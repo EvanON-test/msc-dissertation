@@ -1,10 +1,13 @@
 #TODO: Update ReadME on runs and detail how it is built for the current singular 30s file (would need to adjust approach if longer/more files)
+
+
 import numpy as np
 import shutil
 import time
 import cv2
 import sys
 import os
+import argparse
 
 import processing.binary_classifier_util as bc
 import processing.frame_selector_util as fs
@@ -16,7 +19,7 @@ COMPLETED_FILES_LOG = "./CompletedFiles.txt"
 #Updated this into a class
 class Pipeline:
     @staticmethod
-    def run(data_path, monitor=None, runs=1):
+    def run(data_path="processing/video", monitor=None, runs=1):
 
         try:
             with open(COMPLETED_FILES_LOG, 'r') as cfl:
@@ -140,6 +143,11 @@ class Pipeline:
 
 
 if __name__ == "__main__":
-    #TODO: potentially introduce an args approach here for conformity (although not needed)
-    pipeline = Pipeline()
-    pipeline.run('processing/video')
+    # pipeline = Pipeline()
+    # pipeline.run('processing/video')
+
+    parser = argparse.ArgumentParser(description='Run a CV pipeline on saved video files')
+    parser.add_argument("--data_path", type=str, default="processing/video" ,help="Path to folder holding video files")
+    parser.add_argument("--runs", type=int, default=1 ,help="Number of runs to run the pipeline for") #Hangover from monitoring really
+    args = parser.parse_args()
+    Pipeline.run(data_path=args.data_path, runs=args.runs)
