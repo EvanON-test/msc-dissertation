@@ -90,8 +90,8 @@ class FrameProcessingThread(Thread):
 
                     print("\nCropping to region of interest...")
                     try:
-                        roi_frames = od.process_realtime(frame)
-                        print("OD processed successfully!")
+                        roi_frames, confidence = od.process_realtime(frame)
+                        print(f"Frame processed successfully, confidence: {confidence:.2f}")
                     except Exception as e:
                         print("Potential Error, skipping frame..." + str(e))
                         self.frame_queue.task_done()
