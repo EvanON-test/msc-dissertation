@@ -131,7 +131,7 @@ class FrameProcessingThread(Thread):
                         #intilises a unique time based and confidence based name for the file
                         creation_time = datetime.datetime.now()
                         timestamp = creation_time.strftime("%Y-%m-%d_%H-%M")
-                        filename = os.path.join(output_directory, timestamp + "_confidence_" + confidence + ".jpg")
+                        filename = os.path.join(output_directory, f"{timestamp}_confidence_{confidence:.2f}.jpg")
                         cv2.imwrite(filename, frame)
                         print(f"Saved high confidence frame: {confidence:.2f}")
 
