@@ -72,7 +72,7 @@ Logs:
 # realtime_pipeline.py - file for executing the pipeline in real time.
 
 A Computer Vision pipeline utilising Object detector and Keypoint detector models in real time.
-Utilises a multi-threaded approach to allow for display and processing of frames concurrently
+Utilises a multi-threaded approach to allow for display (at 30fps) and processing of frames concurrently
 
 Default implementation
 

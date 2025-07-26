@@ -12,7 +12,7 @@ from threading import Thread, Event
 import queue
 import argparse
 
-#TODO: NEXT - Implement a approach where models stay loaded (as opposed to loaded every function call)
+
 import processing.object_detector_util as od
 import processing.keypoint_detector_util as kd
 
@@ -46,6 +46,12 @@ class FrameCaptureThread(Thread):
                 print("Unable to run gst_stream properly")
                 return
 
+            #extracts the cameras properties
+            width = capture.get(cv2.CAP_PROP_FRAME_WIDTH)
+            height = capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
+            fps = capture.get(cv2.CAP_PROP_FPS)
+
+
             #intilises frame counter
             frame_counter = 0
 
@@ -53,6 +59,11 @@ class FrameCaptureThread(Thread):
             while not self.stop_event.is_set():
                 #reads next frame from camera
                 ret, frame = capture.read()
+
+                #builds an overlay string to be displayed
+                display_info = f"Resolution: {width}x{height}, FPS: {fps}"
+                #Adds text overlay to frame. Some is self explanatory. (10, 10) = (left, top). 0.5 = font size. (0, 255, 0) = hex colour green. 2 = text thickness
+                cv2.putText(frame, display_info, (10, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                 #displys the frame
                 cv2.imshow('Live Feed', frame)
 
@@ -171,8 +182,8 @@ class RealtimePipeline:
         self.stop_event.set()
         self.capture_thread.join()
         self.process_thread.join()
-        od.load_model()
-        kd.load_model()
+        od.unload_model()
+        kd.unload_model()
         cv2.destroyAllWindows()
 
 
