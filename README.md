@@ -81,9 +81,9 @@ Default implementation
 Where:
     `process_every_n_frames`: is the cadence at which frames should be processed (to mitigate for performance issues)
 
-
+ 2
 # TODO:Add more context here once finalised
 
 
 ## Default Use: `sudo python3.9 realtime_pipeline.py`
-## Modified Use: `sudo python3.9 realtime_pipeline.py --process_every_n_frames 120`
+## Modified Use: `sudo python3.9 realtime_pipeline.py --frames_interval 120`

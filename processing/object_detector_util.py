@@ -7,6 +7,42 @@ import cv2
 import sys
 import os
 
+preloaded_interpreter = None
+preloaded_input_details = None
+preloaded_output_details = None
+
+#loads model using global variables
+def load_model():
+    global preloaded_interpreter
+    global preloaded_input_details
+    global preloaded_output_details
+    print("Loading Object Detector model...")
+    try:
+        preloaded_interpreter = tflite.Interpreter(
+            model_path="./processing/object_detector/best-expanded.tflite")
+        preloaded_interpreter.allocate_tensors()
+        preloaded_input_details = preloaded_interpreter.get_input_details()
+        preloaded_output_details = preloaded_interpreter.get_output_details()
+        print("Model loaded")
+    except Exception as e:
+        print("Preloading OD failed due to: " + str(e))
+
+#Unloads model using global variables
+def unload_model():
+    global preloaded_interpreter
+    global preloaded_input_details
+    global preloaded_output_details
+    print("Unloading Object Detector model...")
+    try:
+        preloaded_interpreter = None
+        preloaded_input_details = None
+        preloaded_output_details = None
+        print("Model Unloaded")
+    except Exception as e:
+        print("Unloading OD failed due to: " + str(e))
+
+
+
 ##GPU - rescale to 640, 640. No current benefit
 # def rescale_image_gpu(image, target_size=(640,640)):
 #     gpu_image = cv2.cuda_GpuMat()
@@ -111,8 +147,13 @@ def process(savepoint):
 
     return np.array(cropped_frames)
 
-#Realtime version - slightly modified version of above
+#TODO: update comemnts after finalisation
+#Realtime version - slightly modified version of above...with more modifications for better loading
 def process_realtime(frame):
+    global preloaded_interpreter
+    global preloaded_input_details
+    global preloaded_output_details
+
     cropped_frames = []
 
     #MODIFIED to utilise the frame and not the saved image
@@ -120,19 +161,15 @@ def process_realtime(frame):
 
     fixed_box_size = np.asarray([539, 561])
 
-    interpreter = tflite.Interpreter(
-        model_path="./processing/object_detector/best-expanded.tflite")
+    #modififed interpreter use utilising preloaded model
+    interpreter = preloaded_interpreter
     # interpreter.resize_tensor_input(
     #     interpreter.get_input_details()[0]['index'],
     #     [1, 640, 640, 3])
-    interpreter.allocate_tensors()
 
     # Get input and output tensors.
-    input_details = interpreter.get_input_details()
-    output_details = interpreter.get_output_details()
-
-
-
+    input_details = preloaded_input_details
+    output_details = preloaded_output_details
 
     # input_data = cv2.cvtColor(input_data, cv2.COLOR_BGR2GRAY)
 

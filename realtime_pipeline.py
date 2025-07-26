@@ -110,7 +110,7 @@ class FrameProcessingThread(Thread):
                         #Skips frames which have a low confidence level
                         #TODO: need to clarify what level is appropriate. Reminder: Initial runs were showing 0.3 - 0.6ish
                         if confidence < 0.7:
-                            print("Confidence too low: " + str(confidence))
+                            print(f"Confidence too low: {confidence:.2f}")
                             continue
                     except Exception as e:
                         print("OBJECT DETECTOR ERROR: skipping frame..." + str(e))
@@ -171,12 +171,18 @@ class RealtimePipeline:
         self.stop_event.set()
         self.capture_thread.join()
         self.process_thread.join()
+        od.load_model()
+        kd.load_model()
         cv2.destroyAllWindows()
 
 
     def process(self):
         """Creates, configures and starts both threads befroe waiting for completion and cleanly shutting down"""
         try:
+            #Load the models
+            od.load_model()
+            kd.load_model()
+
             #creates both thread instances
             self.capture_thread = FrameCaptureThread(self.gst_stream, self.frame_queue, self.stop_event, self.process_every_n_frames)
             self.process_thread = FrameProcessingThread(self.frame_queue, self.stop_event)
