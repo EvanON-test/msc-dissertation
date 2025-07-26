@@ -11,6 +11,7 @@ import subprocess
 from threading import Thread, Event
 import queue
 import argparse
+import datetime
 
 
 import processing.object_detector_util as od
@@ -123,6 +124,17 @@ class FrameProcessingThread(Thread):
                         if confidence < 0.7:
                             print(f"Confidence too low: {confidence:.2f}")
                             continue
+
+                        output_directory = "./realtime_frames/"
+                        os.makedirs(output_directory, exist_ok=True)
+
+                        #intilises a unique time based and confidence based name for the file
+                        creation_time = datetime.datetime.now()
+                        timestamp = creation_time.strftime("%Y-%m-%d_%H-%M")
+                        filename = os.path.join(output_directory, timestamp + "_confidence_" + confidence + ".jpg")
+                        cv2.imwrite(filename, frame)
+                        print(f"Saved high confidence frame: {confidence:.2f}")
+
                     except Exception as e:
                         print("OBJECT DETECTOR ERROR: skipping frame..." + str(e))
                         self.frame_queue.task_done()
