@@ -26,6 +26,7 @@ class RealtimePipeline:
         self.detection_box = None
         self.detection_confidence = 0.0
         self.detection_count = 0
+        self.start_time = 0
 
         os.makedirs(self.output_directory, exist_ok=True)
 
@@ -59,6 +60,7 @@ class RealtimePipeline:
 
 
     def run(self):
+        start_time = time.time()
         #Load the models
         od.load_model()
         # kd.load_model()
@@ -70,14 +72,12 @@ class RealtimePipeline:
                 print("GST Stream failed to open.")
                 return
 
-            # extracts the cameras properties
-            width = capture.get(cv2.CAP_PROP_FRAME_WIDTH)
-            height = capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
-
             frame_counter = 0
 
-            print(f"Camera initialised successfully.")
-            print(f"Processing every {self.process_every_n_frames} frames.")
+
+
+            print(f"CAMERA INITIALISED SUCCESSFULLY.")
+            print(f"PROCESSING EVERY {self.process_every_n_frames} FRAMES.")
             print(f"Press CTRL+C to exit or q to exit.")
 
             # The main loop, continues until quit
@@ -100,7 +100,7 @@ class RealtimePipeline:
                             self.save_detection(frame, roi_frames, confidence, bbox, frame_counter)
                             #TODO: THIS IS A VERY POOR APPROACH. ITERATE.....POTENTIALLY
                             wait_time = 3
-                            print(f"Detection: Waiting for {wait_time} seconds in an attempt to minimise incorrect counting.")
+                            print(f"WAITING: Waiting for {wait_time} seconds to prevent duplicates.")
                             time.sleep(wait_time)
                         else:
                             print(f"Confidence below threshold")
@@ -124,8 +124,12 @@ class RealtimePipeline:
             capture.release()
             od.unload_model()
             # kd.unload_model()
-            print("Final Summary:")
-            print(f"    Detection count:{self.detection_count}")
+            runtime = time.time() - start_time
+            print(" --- FINAL SUMMARY --- ")
+            print(f"    Total Frames Captured: {frame_counter}")
+            print(f"    Frames Processed for Detection: {frame_counter // self.process_every_n_frames}")
+            print(f"    High confidence detections saved: {self.detection_count}")
+            print(f"    Total Runtime: {runtime}")
 
 
 
