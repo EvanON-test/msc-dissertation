@@ -243,4 +243,4 @@ def process_realtime(frame):
     # cast coords to int, draw box on image
     # showw("img", plot)
 
-    return np.array(cropped_frames), conf
+    return np.array(cropped_frames), conf, (x1, y1, x2, y2)
