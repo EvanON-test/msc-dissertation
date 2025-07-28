@@ -16,13 +16,14 @@ import processing.keypoint_detector_util as kd
 
 
 
-# #TODO: ADD A SEPERATE THREAD for KD after test
+# #TODO: ADD A SEPERATE THREAD for KD after completing the non video version
 # class KeypointDetection(Thread):
-#     if roi_frames is None:
-#         print("roi_frames is none....skipping frame")
-#         self.frame_queue.task_done()
-#         continue
 #
+#     # if roi_frames is None:
+#     #     print("roi_frames is none....skipping frame")
+#     #     self.frame_queue.task_done()
+#     #     continue
+#     def
 #     print("ROI FRAMES: ", roi_frames.shape)
 #     print("\nDetecting keypoints...")
 #     try:
@@ -35,10 +36,14 @@ import processing.keypoint_detector_util as kd
 #         print("KEYPOINT DETECTOR ERROR: skipping frame..." + str(e))
 #     # marks processing as complete
 #     self.frame_queue.task_done()
-#TODO: testing lower frame cadnece of 5 instead of 60
+
+# #TODO: ADD A SEPERATE THREAD for OD after completing the non video version
+# class ObjectDetection(Thread):
+
+
 #TODO: re-build the code  into a singluar thread again - ONLY OD - KD AFTER TEST
 #TODO: update comments and README later (not changed since new approach)
-class RealtimePipeline:
+class RealtimePipelineDemo:
     """Main class for running the realtime pipeline. Orchestrates the capture, display and processing of frames.
     This includes managing the created cpature and processing threads"""
     def __init__(self, process_every_n_frames=15):
@@ -172,7 +177,7 @@ class RealtimePipeline:
 if __name__ == "__main__":
     # An updated approach. Argparse approach means the number of runs can added to the cli command
     parser = argparse.ArgumentParser(description='Run a CV pipeline with camera capture and processing')
-    parser.add_argument("--frames_interval", type=int, default=15, help="Process every N frmaes (5 default)")
+    parser.add_argument("--frames_interval", type=int, default=60, help="Process every N frmaes (60 default)")
     args = parser.parse_args()
-    realtime_pipeline = RealtimePipeline(process_every_n_frames=args.frames_interval)
+    realtime_pipeline = RealtimePipelineDemo(process_every_n_frames=args.frames_interval)
     realtime_pipeline.run()
