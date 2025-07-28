@@ -35,17 +35,17 @@ import processing.keypoint_detector_util as kd
 #         print("KEYPOINT DETECTOR ERROR: skipping frame..." + str(e))
 #     # marks processing as complete
 #     self.frame_queue.task_done()
-
+#TODO: testing lower frame cadnece of 5 instead of 60
 #TODO: re-build the code  into a singluar thread again - ONLY OD - KD AFTER TEST
 #TODO: update comments and README later (not changed since new approach)
 class RealtimePipeline:
     """Main class for running the realtime pipeline. Orchestrates the capture, display and processing of frames.
     This includes managing the created cpature and processing threads"""
-    def __init__(self, process_every_n_frames=60):
+    def __init__(self, process_every_n_frames=5):
         #Forces os's primary display (negates issues arising via ssh given commands)
         os.environ['DISPLAY'] = ':0'
         #TODO: Gstreamer pipeline. Elaborated in notion MAYBE add more context here later
-        self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
+        self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=640,height=480,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
         self.process_every_n_frames = process_every_n_frames
 
 
@@ -172,7 +172,7 @@ class RealtimePipeline:
 if __name__ == "__main__":
     # An updated approach. Argparse approach means the number of runs can added to the cli command
     parser = argparse.ArgumentParser(description='Run a CV pipeline with camera capture and processing')
-    parser.add_argument("--frames_interval", type=int, default=60, help="Process every N frmaes (60 default)")
+    parser.add_argument("--frames_interval", type=int, default=5, help="Process every N frmaes (5 default)")
     args = parser.parse_args()
     realtime_pipeline = RealtimePipeline(process_every_n_frames=args.frames_interval)
     realtime_pipeline.run()
