@@ -1,7 +1,6 @@
 #TODO: DONT FORGET TO cite the code sections you have used formally (gst, gfg etc)
 #TODO: test with 60, 30, 15 etc various levels for basic performance understanding
 
-
 import numpy as np
 import cv2
 import sys
@@ -10,6 +9,7 @@ from threading import Thread, Event, Lock
 import argparse
 import datetime
 import pipeline
+import gc
 
 import processing.object_detector_util as od
 import processing.keypoint_detector_util as kd
@@ -45,7 +45,7 @@ class RealtimePipeline:
         #Forces os's primary display (negates issues arising via ssh given commands)
         os.environ['DISPLAY'] = ':0'
         #TODO: Gstreamer pipeline. Elaborated in notion MAYBE add more context here later
-        self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1920,height=1080,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
+        self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720,framerate=30/1 ! nvvidconv ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
         self.process_every_n_frames = process_every_n_frames
 
 
@@ -123,6 +123,10 @@ class RealtimePipeline:
                             # filename = os.path.join(output_directory, f"{timestamp}_confidence_{confidence:.2f}.jpg")
                             # cv2.imwrite(filename, frame)
                             # print(f"Saved high confidence frame: {confidence:.2f}")
+
+                        #clean memory
+                        del roi_frames
+                        gc.collect()
                     except Exception as e:
                         print(f"OD ERROR. Caused by: {e}")
                 if self.detection_age < 15:
