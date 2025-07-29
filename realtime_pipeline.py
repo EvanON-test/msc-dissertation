@@ -1,6 +1,4 @@
 import csv
-from sys import exception
-
 import numpy as np
 import cv2
 import sys
@@ -30,8 +28,8 @@ class SaveDetectionThread(Thread):
         try:
             print("Loading Keypoint Detector...")
             kd.load_model()
-        except Exception:
-            print("Failed to load Keypoint Detector")
+        except Exception as e:
+            print("Failed to load Keypoint Detector" + str(e))
             return
 
         try:
