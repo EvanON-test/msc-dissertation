@@ -29,17 +29,17 @@ class SaveDetectionThread(Thread):
             print("Loading Keypoint Detector...")
             kd.load_model()
         except Exception as e:
-            print("Failed to load Keypoint Detector" + str(e))
+            print(f"Failed to load Keypoint Detector due to: {e}")
             return
 
         try:
             creation_time = datetime.datetime.now()
             timestamp = creation_time.strftime("%Y-%m-%d_%H-%M-%S")
 
-            detection_dir = os.path.join(self.output_directory, f"{timestamp}_detection")
+            detection_dir = os.path.join(self.output_directory, f"{timestamp}_Detection")
             os.mkdir(detection_dir)
 
-            image_filename = f"{timestamp}_frame_{self.frame_counter}confidence_{self.confidence:.2f}.jpg"
+            image_filename = f"{timestamp}_screenshot.jpg"
             path = os.path.join(detection_dir, image_filename)
             cv2.imwrite(path, self.frame)
             print(f"Saved high confidence frame: {self.confidence:.2f}")
@@ -57,7 +57,7 @@ class SaveDetectionThread(Thread):
             print(f"Detection confidence: {self.confidence:.2f}")
             print(f"Bounding Box: {self.bbox}")
         except Exception as e:
-            print("ERROR SAVING DETECTION..." + str(e))
+            print(f"ERROR SAVING DETECTION...{e}")
 
 #TODO: update comments and README later (not changed since new approach)
 class RealtimePipeline:
@@ -90,8 +90,6 @@ class RealtimePipeline:
 
             frame_counter = 0
 
-
-
             print(f"CAMERA INITIALISED SUCCESSFULLY.")
             print(f"PROCESSING EVERY {self.process_every_n_frames} FRAMES.")
             print(f"Press CTRL+C to exit or q to exit.")
@@ -115,11 +113,11 @@ class RealtimePipeline:
                             print(f"Confidence sufficiently high: {confidence:.2f}")
                             try:
                                 self.detection_count += 1
-                                saving_thread = SaveDetectionThread(frame, roi_frames, confidence, bbox, frame_counter)
+                                saving_thread = SaveDetectionThread(frame.copy(), roi_frames, confidence, bbox, frame_counter)
                                 saving_thread.start()
                             except Exception as e:
-                                print('ERROR while implementing SaveDetectionThread')
-                            #TODO: THIS IS A VERY POOR APPROACH. ITERATE.....POTENTIALLY
+                                print(f'ERROR while implementing SaveDetectionThread: {e}')
+                            #TODO: THIS IS A VERY POOR APPROACH. ITERATE.....ALTHOUGH IT DOES SEEM TO WORK
                             wait_time = 3
                             print(f"WAITING: Waiting for {wait_time} seconds to prevent duplicates.")
                             time.sleep(wait_time)
