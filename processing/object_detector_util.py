@@ -210,7 +210,8 @@ def process_realtime(frame):
     y[0][..., :4] *= [w, h, w, h]  # xywh normalized to pixels
 
     x1, y1, x2, y2, conf, class_index = non_max_suppression(y[0])[0][0]
-
+    #TODO: TEST THIS
+    print(f"DEBUG: DETECTED CLASS INDEX: {class_index}, CONFIDENCE: {conf:.2f}")
 
     # print(x1, y1, x2, y2)
     # x1, y1, x2, y2 = x1*scale, y1*scale, x2*scale, y2*scale
