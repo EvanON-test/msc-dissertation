@@ -212,6 +212,11 @@ def process_realtime(frame):
     x1, y1, x2, y2, conf, class_index = non_max_suppression(y[0])[0][0]
     # #TODO: TEST THIS
     # print(f"DEBUG: DETECTED CLASS INDEX: {class_index}, CONFIDENCE: {conf:.2f}")
+    width = x2 - x1
+    height = y2 - y1
+    if width < 10 or height < 10:
+        print("Detection too small. False Positive (Potentially)")
+        return np.array([]), 0, (0, 0, 0, 0)
 
     # print(x1, y1, x2, y2)
     # x1, y1, x2, y2 = x1*scale, y1*scale, x2*scale, y2*scale
