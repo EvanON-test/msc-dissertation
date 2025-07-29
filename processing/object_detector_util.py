@@ -219,7 +219,7 @@ def process_realtime(frame):
         return np.array([]), 0, (0, 0, 0, 0)
 
     # print(x1, y1, x2, y2)
-    # x1, y1, x2, y2 = x1*scale, y1*scale, x2*scale, y2*scale
+    x1, y1, x2, y2 = x1*scale, y1*scale, x2*scale, y2*scale
     x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
     fb0 = fixed_box_size[0] // 2
