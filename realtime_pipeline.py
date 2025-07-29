@@ -41,6 +41,16 @@ class SaveDetectionThread(Thread):
 
             frame_with_bbox = self.frame.copy()
             x1, y1, x2, y2 = self.bbox
+
+            frame_height, frame_width = frame_with_bbox.shape[:2]
+            bbox_width = x2 - x1
+            bbox_height = y2 - y1
+
+            #DEBUG
+            print(f"Frame width: {frame_width}, Frame height: {frame_height}")
+            print(f"Bbox: x1={x1}, y1={y1}, x2={x2}, y2={y2}")
+            print(f"Bbox width: {bbox_width}, Bbox height: {bbox_height}")
+
             cv2.rectangle(frame_with_bbox, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
             detection_text = f"Detection: {self.confidence:.2f}"
@@ -82,7 +92,7 @@ class RealtimePipeline:
         #TODO: Gstreamer pipeline. Elaborated in notion MAYBE add more context later
         self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=640,height=480,framerate=15/1 ! nvvidconv ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
         self.process_every_n_frames = process_every_n_frames
-        self.confidence_threshold = 0.70
+        self.confidence_threshold = 0.85
         self.detection_box = None
         self.detection_confidence = 0.0
         self.detection_count = 0
