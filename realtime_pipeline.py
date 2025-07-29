@@ -65,6 +65,7 @@ class SaveDetectionThread(Thread):
             cv2.imwrite(bbox_path, frame_with_bbox)
             print(f"Saved high confidence frame: {self.confidence:.2f}")
 
+
             coordinates = kd.process(self.roi_frames)
             csv_filename = f"{timestamp}_keypoints.csv"
             csv_path = os.path.join(detection_dir, csv_filename)
@@ -97,7 +98,29 @@ class RealtimePipeline:
         self.detection_confidence = 0.0
         self.detection_count = 0
         self.start_time = 0
+        self.previous_frame = None
 
+    #TODO: DEF REF
+    def detect_motion(self, frame):
+        grey_image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        if self.previous_frame is None:
+            self.previous_frame = grey_image
+            return False
+
+        frame_diff = cv2.absdiff(self.previous_frame, grey_image)
+        self.previous_frame = grey_image
+
+        _, thresh = cv2.threshold(frame_diff, 25, 255, cv2.THRESH_BINARY)
+
+        non_zero_count = cv2.countNonZero(thresh)
+        total_pixels = thresh.size
+        movement_percentage = (non_zero_count / total_pixels) * 100
+        if movement_percentage > 40:
+            print(f"Detected motion: {movement_percentage:.2f}%")
+            return True
+        else:
+            print(f"Not significant motion: {movement_percentage:.2f}%")
+            return False
 
 
 
@@ -130,6 +153,11 @@ class RealtimePipeline:
 
                 frame_counter += 1
                 if frame_counter % self.process_every_n_frames == 0:
+                    motion_detected = self.detect_motion(frame)
+
+                    if not motion_detected:
+                        print("Failed to detect motion.")
+                        continue
                     try:
                         print(f"Processing frame:  {frame_counter} for Object Detection")
                         # processes frame through object detector which outputs region of interest and confidence level
