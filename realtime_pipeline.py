@@ -1,3 +1,6 @@
+import csv
+from sys import exception
+
 import numpy as np
 import cv2
 import sys
@@ -11,8 +14,52 @@ import time
 import processing.object_detector_util as od
 import processing.keypoint_detector_util as kd
 
+class SaveDetectionThread(Thread):
+    def __init__(self, frame, roi_frames, confidence, bbox, frame_counter):
+        super().__init__()
+        self.frame = frame
+        self.roi_frames = roi_frames
+        self.confidence = confidence
+        self.bbox = bbox
+        self.frame_counter = frame_counter
+        self.output_directory = "./realtime_frames/"
+        os.makedirs(self.output_directory, exist_ok=True)
 
 
+    def run(self):
+        try:
+            print("Loading Keypoint Detector...")
+            kd.load_model()
+        except Exception:
+            print("Failed to load Keypoint Detector")
+            return
+
+        try:
+            creation_time = datetime.datetime.now()
+            timestamp = creation_time.strftime("%Y-%m-%d_%H-%M-%S")
+
+            detection_dir = os.path.join(self.output_directory, f"{timestamp}_detection")
+            os.mkdir(detection_dir)
+
+            image_filename = f"{timestamp}_frame_{self.frame_counter}confidence_{self.confidence:.2f}.jpg"
+            path = os.path.join(detection_dir, image_filename)
+            cv2.imwrite(path, self.frame)
+            print(f"Saved high confidence frame: {self.confidence:.2f}")
+
+            coordinates = kd.process(self.roi_frames)
+            csv_filename = f"{timestamp}_keypoints.csv"
+            csv_path = os.path.join(detection_dir, csv_filename)
+            flattened_coordinates = coordinates.flatten()
+            with open(csv_path, 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(flattened_coordinates)
+            print(f"Keypoints saved to: {csv_path}")
+
+            print(f"Saved to: {image_filename}")
+            print(f"Detection confidence: {self.confidence:.2f}")
+            print(f"Bounding Box: {self.bbox}")
+        except Exception as e:
+            print("ERROR SAVING DETECTION..." + str(e))
 
 #TODO: update comments and README later (not changed since new approach)
 class RealtimePipeline:
@@ -22,40 +69,12 @@ class RealtimePipeline:
         self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=640,height=480,framerate=15/1 ! nvvidconv ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
         self.process_every_n_frames = process_every_n_frames
         self.confidence_threshold = 0.70
-        self.output_directory = "./realtime_frames/"
         self.detection_box = None
         self.detection_confidence = 0.0
         self.detection_count = 0
         self.start_time = 0
 
-        os.makedirs(self.output_directory, exist_ok=True)
 
-    # def process_keypoints(self, roi_frames):
-    #     try:
-    #         coordinates = kd.process(roi_frames)
-    #         # outputs the results
-    #         print("\n{}\n".format(coordinates))
-    #         print(coordinates.shape)
-    #         return coordinates
-    #     except Exception as e:
-    #         print("KEYPOINT DETECTION ERROR: skipping frame..." + str(e))
-
-    def save_detection(self, frame, roi_frames, confidence, bbox, frame_counter):
-        try:
-            creation_time = datetime.datetime.now()
-            timestamp = creation_time.strftime("%Y-%m-%d_%H-%M-%S")
-            image_filename = f"{timestamp}_frame_{frame_counter}confidence_{confidence:.2f}.jpg"
-            path = os.path.join(self.output_directory,image_filename)
-            cv2.imwrite(path, frame)
-            print(f"Saved high confidence frame: {confidence:.2f}")
-
-            self.detection_count += 1
-
-            print(f"Detection count ({self.detection_count}): {image_filename}")
-            print(f"Detection confidence: {confidence:.2f}")
-            print(f"Bounding Box: {bbox}")
-        except Exception as e:
-            print("ERROR SAVING DETECTION..." + str(e))
 
 
 
@@ -63,7 +82,6 @@ class RealtimePipeline:
         start_time = time.time()
         #Load the models
         od.load_model()
-        # kd.load_model()
         try:
             # Initialises camera capture utilising Gstreamer approach
             capture = cv2.VideoCapture(self.gst_stream, cv2.CAP_GSTREAMER)
@@ -97,7 +115,12 @@ class RealtimePipeline:
                         print(f"Frame processed successfully, confidence: {confidence:.2f}")
                         if confidence > self.confidence_threshold:
                             print(f"Confidence sufficiently high: {confidence:.2f}")
-                            self.save_detection(frame, roi_frames, confidence, bbox, frame_counter)
+                            try:
+                                self.detection_count += 1
+                                saving_thread = SaveDetectionThread(frame, roi_frames, confidence, bbox, frame_counter)
+                                saving_thread.start()
+                            except Exception as e:
+                                print('ERROR while implementing SaveDetectionThread')
                             #TODO: THIS IS A VERY POOR APPROACH. ITERATE.....POTENTIALLY
                             wait_time = 3
                             print(f"WAITING: Waiting for {wait_time} seconds to prevent duplicates.")
@@ -106,7 +129,7 @@ class RealtimePipeline:
                             print(f"Confidence below threshold")
 
                         #clean memory
-                        del roi_frames
+                        del roi_frames, confidence, bbox
                         gc.collect()
                     except Exception as e:
                         print(f"OD PROCESSING ERROR. Caused by: {e}")
