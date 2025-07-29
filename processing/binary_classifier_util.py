@@ -69,7 +69,7 @@ def classify_video(video, model):
         batch = np.zeros((BATCH_SIZE, LOW_RES_HEIGHT, LOW_RES_WIDTH))
         for b in range(0, BATCH_SIZE):
             if success:
-                # TODO: Return to this approach and try to implement it alongside the TensorRT approach
+                # TODO: Return to this approach and try to implement it alongside the TensorRT approach?
                 # GPU - grayscale and rescale
                 # try:
                 #     batch[b] = rescale_image_gpu(image)

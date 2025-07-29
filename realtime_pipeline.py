@@ -31,7 +31,7 @@ class SaveDetectionThread(Thread):
         except Exception as e:
             print(f"Failed to load Keypoint Detector due to: {e}")
             return
-
+        #TODO: test this approach
         try:
             creation_time = datetime.datetime.now()
             timestamp = creation_time.strftime("%Y-%m-%d_%H-%M-%S")
@@ -39,9 +39,20 @@ class SaveDetectionThread(Thread):
             detection_dir = os.path.join(self.output_directory, f"{timestamp}_Detection")
             os.mkdir(detection_dir)
 
+            frame_with_bbox = self.frame.copy()
+            x1, y1, x2, y2 = self.bbox
+            cv2.rectangle(frame_with_bbox, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+            detection_text = f"Detection: {self.confidence:.2f}"
+            cv2.putText(frame_with_bbox, detection_text, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
             image_filename = f"{timestamp}_screenshot.jpg"
             path = os.path.join(detection_dir, image_filename)
             cv2.imwrite(path, self.frame)
+
+            bbox_image_filename = f"bbox_{timestamp}_screenshot.jpg"
+            bbox_path = os.path.join(detection_dir, bbox_image_filename)
+            cv2.imwrite(bbox_path, frame_with_bbox)
             print(f"Saved high confidence frame: {self.confidence:.2f}")
 
             coordinates = kd.process(self.roi_frames)
@@ -50,8 +61,13 @@ class SaveDetectionThread(Thread):
             flattened_coordinates = coordinates.flatten()
             with open(csv_path, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
+                #keypoint detector returns 7 keypoints with 2 cords each
+                headers = ['x1, y1', 'x2', 'y2', 'x3', 'y3', 'x4', 'y4', 'x5', 'y5', 'x6', 'y6', 'x7', 'y7']
+                writer.writerow(headers)
                 writer.writerow(flattened_coordinates)
             print(f"Keypoints saved to: {csv_path}")
+
+
 
             print(f"Saved to: {image_filename}")
             print(f"Detection confidence: {self.confidence:.2f}")
@@ -119,10 +135,10 @@ class RealtimePipeline:
                                 print(f'ERROR while implementing SaveDetectionThread: {e}')
                             #TODO: THIS IS A VERY POOR APPROACH. ITERATE.....ALTHOUGH IT DOES SEEM TO WORK
                             wait_time = 3
-                            print(f"WAITING: Waiting for {wait_time} seconds to prevent duplicates.")
+                            print(f"WAITING: Waiting for {wait_time} seconds to prevent duplicates.\n")
                             time.sleep(wait_time)
                         else:
-                            print(f"Confidence below threshold")
+                            print(f"Confidence below threshold\n")
 
                         #clean memory
                         del roi_frames, confidence, bbox
@@ -130,8 +146,7 @@ class RealtimePipeline:
                     except Exception as e:
                         print(f"OD PROCESSING ERROR. Caused by: {e}")
 
-                if frame_counter % 300 == 0:
-                    print(f"Status Update: {frame_counter} frames processed, {self.detection_count} detections saved.")
+
 
         except KeyboardInterrupt:
             print("Interrupted by Keyboard.")
