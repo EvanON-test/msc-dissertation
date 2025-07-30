@@ -211,7 +211,9 @@ def process_realtime(frame):
 
     x1, y1, x2, y2, conf, class_index = non_max_suppression(y[0])[0][0]
     # #TODO: TEST THIS
-    # print(f"DEBUG: DETECTED CLASS INDEX: {class_index}, CONFIDENCE: {conf:.2f}")
+    print(f"DEBUG: DETECTED CLASS INDEX: {class_index}, CONFIDENCE: {conf:.2f}")
+
+    #Added to reduce initial issues regarding small object
     width = x2 - x1
     height = y2 - y1
     if width < 20 or height < 20:

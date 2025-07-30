@@ -121,7 +121,7 @@ class RealtimePipeline:
         #Stores previous frame for use in motion detection
         self.previous_frame = None
         #Minimum level, percentage, above which motion detection function is triggered
-        self.detection_minimum = 30
+        self.detection_minimum = 20
 
     #TODO: DEF REF
     def detect_motion(self, frame):
