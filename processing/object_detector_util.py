@@ -223,27 +223,27 @@ def process_realtime(frame):
     # x1, y1, x2, y2 = x1*scale, y1*scale, x2*scale, y2*scale
     x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
-    #TODO: test out this approach to fixing bbox (essintially undoing preprocessing)
-    #get original dimensions
-    original_height, original_width = true_scale_image.shape[:2]
-
-    #scale back to original
-    scale_factor = 1280 / 640
-    x1, y1, x2, y2 = x1*scale_factor, y1*scale_factor, x2*scale_factor, y2*scale_factor
-
-    #Removes padding offset
-    pos_y = ((y_target - x) / 2)
-    y1 = y1 - pos_y
-    y2 = y2 - pos_y
-
-    #Scale back to original width
-    x1 = x1 * (original_width / 1280)
-    x2 = x2 * (original_width / 1280)
-
-    x1 = max(0, min(int(x1), original_width))
-    y1 = max(0, min(int(y1), original_height))
-    x2 = max(0, min(int(x2), original_width))
-    y2 = max(0, min(int(y2), original_height))
+    # #TODO: test out this approach to fixing bbox (essintially undoing preprocessing)
+    # #get original dimensions
+    # original_height, original_width = true_scale_image.shape[:2]
+    #
+    # #scale back to original
+    # scale_factor = 1280 / 640
+    # x1, y1, x2, y2 = x1*scale_factor, y1*scale_factor, x2*scale_factor, y2*scale_factor
+    #
+    # #Removes padding offset
+    # pos_y = ((y_target - x) / 2)
+    # y1 = y1 - pos_y
+    # y2 = y2 - pos_y
+    #
+    # #Scale back to original width
+    # x1 = x1 * (original_width / 1280)
+    # x2 = x2 * (original_width / 1280)
+    #
+    # x1 = max(0, min(int(x1), original_width))
+    # y1 = max(0, min(int(y1), original_height))
+    # x2 = max(0, min(int(x2), original_width))
+    # y2 = max(0, min(int(y2), original_height))
 
 
     fb0 = fixed_box_size[0] // 2

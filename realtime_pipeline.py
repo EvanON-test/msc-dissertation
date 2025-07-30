@@ -67,6 +67,13 @@ class SaveDetectionThread(Thread):
             image_filename = f"{timestamp}_screenshot.jpg"
             path = os.path.join(detection_dir, image_filename)
             cv2.imwrite(path, self.frame)
+
+            #TODO debug by saving and checking roi_frmaes
+            #generates the unique filename for original image and saves it to the unique directory
+            roi_image_filename = f"roi_{timestamp}_screenshot.jpg"
+            path = os.path.join(detection_dir, roi_image_filename)
+            cv2.imwrite(path, self.roi_frames)
+
             # generates the unique filename for annotated image and saves it to the unique directory
             bbox_image_filename = f"bbox_{timestamp}_screenshot.jpg"
             bbox_path = os.path.join(detection_dir, bbox_image_filename)
