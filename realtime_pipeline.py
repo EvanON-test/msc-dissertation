@@ -103,7 +103,7 @@ class RealtimePipeline:
     def __init__(self, process_every_n_frames=30):
         #TODO: Gstreamer pipeline. Elaborated in notion MAYBE add more context later
         #TODO: test different resolutions (640, 480 original)
-        self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=640,height=640,framerate=15/1 ! nvvidconv ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
+        self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=640,height=480,framerate=15/1 ! nvvidconv ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
         #cadence of frames to process
         self.process_every_n_frames = process_every_n_frames
         # Threshold at which above it  will engage detection to be saved
