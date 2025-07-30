@@ -187,8 +187,8 @@ def process_realtime(frame):
     # new_im.paste(Image.fromarray(np.uint8(true_scale_image)), (0, pos_y))
     #---
     original_height, original_width = true_scale_image.shape[:2]
-    pos_x = (1280 - original_width) / 2
-    pos_y = (1280 - original_height) / 2
+    pos_x = int((1280 - original_width) / 2)
+    pos_y = int((1280 - original_height) / 2)
 
     #pastes into centre of the square canvas
     new_im.paste(Image.fromarray(np.uint8(true_scale_image)), (pos_x, pos_y))
@@ -256,6 +256,8 @@ def process_realtime(frame):
     y1 = max(0, int(y1_final))
     x2 = min(original_width, int(x2_final))
     y2 = min(original_height, int(y2_final))
+
+    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
 
     fb0 = fixed_box_size[0] // 2
