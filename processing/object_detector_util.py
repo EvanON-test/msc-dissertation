@@ -234,7 +234,7 @@ def process_realtime(frame):
     #Removes padding offset
     pos_y = ((y_target - x) / 2)
     y1 = y1 - pos_y
-    y2 = y2 - pos_y
+    y2 = y2 + pos_y
 
     #Scale back to original width
     x1 = x1 * (original_width / 1280)
