@@ -179,10 +179,19 @@ def process_realtime(frame):
 
     #calculatesvertical centering offset
     # pos_x = (int((x_target - x) / 2))
-    pos_y = (int((y_target - x) / 2))
+    #TODO: test these modifications
+    #---
+    #pos_y = (int((y_target - x) / 2))
+    #
+    # #pastes into centre of the square canvas
+    # new_im.paste(Image.fromarray(np.uint8(true_scale_image)), (0, pos_y))
+    #---
+    original_height, original_width = true_scale_image.shape[:2]
+    pos_x = (1280 - original_width) / 2
+    pos_y = (1280 - original_height) / 2
 
     #pastes into centre of the square canvas
-    new_im.paste(Image.fromarray(np.uint8(true_scale_image)), (0, pos_y))
+    new_im.paste(Image.fromarray(np.uint8(true_scale_image)), (pos_x, pos_y))
     expanded_image = np.array(new_im)[..., :3]
 
 
@@ -225,25 +234,28 @@ def process_realtime(frame):
 
     # #TODO: test out this approach to fixing bbox (essintially undoing preprocessing)
     #get original dimensions
-    original_height, original_width = true_scale_image.shape[:2]
+
 
     #scale back to original
     scale_factor = 1280 / 640
-    x1, y1, x2, y2 = x1*scale_factor, y1*scale_factor, x2*scale_factor, y2*scale_factor
+    x1_padded = x1 * scale_factor
+    y1_padded = y1 * scale_factor
+    x2_padded = x2 * scale_factor
+    y2_padded = y2 * scale_factor
 
     #Removes padding offset
-    pos_y = ((y_target - x) / 2)
-    y1 = y1 - pos_y
-    y2 = y2 + pos_y
+    offset_x = (1280 - original_width) / 2
+    offset_y = (1280 - original_height) / 2
 
-    #Scale back to original width
-    x1 = x1 * (original_width / 1280)
-    x2 = x2 * (original_width / 1280)
+    x1_final = x1_padded - offset_x
+    y1_final = y1_padded - offset_y
+    x2_final = x2_padded - offset_x
+    y2_final = y2_padded - offset_y
 
-    x1 = max(0, min(int(x1), original_width))
-    y1 = max(0, min(int(y1), original_height))
-    x2 = max(0, min(int(x2), original_width))
-    y2 = max(0, min(int(y2), original_height))
+    x1 = max(0, int(x1_final))
+    y1 = max(0, int(y1_final))
+    x2 = min(original_width, int(x2_final))
+    y2 = min(original_height, int(y2_final))
 
 
     fb0 = fixed_box_size[0] // 2

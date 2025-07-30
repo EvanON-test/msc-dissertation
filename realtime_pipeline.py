@@ -117,7 +117,7 @@ class RealtimePipeline:
         self.confidence_threshold = 0.85
 
         #Stores most recent detection
-        self.detection_box = None
+        self.motion_detected = None
         #Stores latest confidence level
         self.detection_confidence = 0.0
         #Stores the count of high confidence detections
@@ -196,40 +196,40 @@ class RealtimePipeline:
                 #If it is then checks for motion (based on function defined earlier)
                 frame_counter += 1
                 if frame_counter % self.process_every_n_frames == 0:
-                    motion_detected = self.detect_motion(frame)
+                    self.motion_detected = self.detect_motion(frame)
 
-                    #TODO: Need to adjust this. Not good as is. Decrease n frames?
-                    #Checsk if motion deteceted, skips this iteration of the loop if no motion
-                    if not motion_detected:
-                        print("Failed to detect motion.")
-                        continue
-                    try:
-                        print(f"Processing frame:  {frame_counter} for Object Detection")
-                        # processes frame through object detector which outputs region of interest, confidence level and bounding box
-                        roi_frames, confidence, bbox = od.process_realtime(frame)
-                        # print(f"Frame processed successfully, confidence: {confidence:.2f}")
-                        if confidence > self.confidence_threshold:
-                            print(f"Confidence sufficiently high: {confidence:.2f}")
-                            try:
-                                #Increments the detection count before calling the save detection processes in another thread with all the detection data
-                                self.detection_count += 1
-                                saving_thread = SaveDetectionThread(frame.copy(), roi_frames, confidence, bbox, frame_counter)
-                                saving_thread.start()
-                            except Exception as e:
-                                print(f'ERROR while implementing SaveDetectionThread: {e}')
-                            ##Hard codes a wait into the pipeline in a, poor, attempt to minimise multiple counts of the same crustacean
-                            #TODO: THIS IS A VERY POOR APPROACH. ITERATE.....ALTHOUGH IT DOES SEEM TO HELP
-                            wait_time = 4
-                            print(f"WAITING: Waiting for {wait_time} seconds to prevent duplicates.\n")
-                            time.sleep(wait_time)
-                        else:
-                            print(f"Confidence below threshold\n")
+                #TODO: Need to adjust this. Not good as is. Decrease n frames?
+                #Checsk if motion deteceted, skips this iteration of the loop if no motion
+                if not self.motion_detected:
+                    print("Failed to detect motion.")
+                    continue
+                try:
+                    print(f"Processing frame:  {frame_counter} for Object Detection")
+                    # processes frame through object detector which outputs region of interest, confidence level and bounding box
+                    roi_frames, confidence, bbox = od.process_realtime(frame)
+                    # print(f"Frame processed successfully, confidence: {confidence:.2f}")
+                    if confidence > self.confidence_threshold:
+                        print(f"Confidence sufficiently high: {confidence:.2f}")
+                        try:
+                            #Increments the detection count before calling the save detection processes in another thread with all the detection data
+                            self.detection_count += 1
+                            saving_thread = SaveDetectionThread(frame.copy(), roi_frames, confidence, bbox, frame_counter)
+                            saving_thread.start()
+                        except Exception as e:
+                            print(f'ERROR while implementing SaveDetectionThread: {e}')
+                        ##Hard codes a wait into the pipeline in a, poor, attempt to minimise multiple counts of the same crustacean
+                        #TODO: THIS IS A VERY POOR APPROACH. ITERATE.....ALTHOUGH IT DOES SEEM TO HELP
+                        wait_time = 4
+                        print(f"WAITING: Waiting for {wait_time} seconds to prevent duplicates.\n")
+                        time.sleep(wait_time)
+                    else:
+                        print(f"Confidence below threshold\n")
 
-                        #Helps minimise memory usage by deleting variables and garbage cleaning
-                        del roi_frames, confidence, bbox
-                        gc.collect()
-                    except Exception as e:
-                        print(f"OD PROCESSING ERROR. Caused by: {e}")
+                    #Helps minimise memory usage by deleting variables and garbage cleaning
+                    del roi_frames, confidence, bbox
+                    gc.collect()
+                except Exception as e:
+                    print(f"OD PROCESSING ERROR. Caused by: {e}")
         except KeyboardInterrupt:
             print("Interrupted by Keyboard.")
         except Exception as e:
