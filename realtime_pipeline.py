@@ -49,12 +49,12 @@ class SaveDetectionThread(Thread):
             #TODO: remove this after debugging finished
             frame_with_bbox = self.frame.copy()
             x1, y1, x2, y2 = self.bbox
-            frame_height, frame_width = frame_with_bbox.shape[:2]
-            bbox_width = x2 - x1
-            bbox_height = y2 - y1
-            print(f"Frame width: {frame_width}, Frame height: {frame_height}")
-            print(f"Bbox: x1={x1}, y1={y1}, x2={x2}, y2={y2}")
-            print(f"Bbox width: {bbox_width}, Bbox height: {bbox_height}")
+            # frame_height, frame_width = frame_with_bbox.shape[:2]
+            # bbox_width = x2 - x1
+            # bbox_height = y2 - y1
+            # print(f"Frame width: {frame_width}, Frame height: {frame_height}")
+            # print(f"Bbox: x1={x1}, y1={y1}, x2={x2}, y2={y2}")
+            # print(f"Bbox width: {bbox_width}, Bbox height: {bbox_height}")
 
             #TODO: fix this after
             #Draws a green box around the detected object (that is the aim at least)
@@ -90,7 +90,7 @@ class SaveDetectionThread(Thread):
                 writer = csv.writer(csvfile)
                 #keypoint detector returns 7 keypoints with 2 cords each. Updated their names based on rereading the Research paper
                 # headers = ['x1, y1', 'x2', 'y2', 'x3', 'y3', 'x4', 'y4', 'x5', 'y5', 'x6', 'y6', 'x7', 'y7']
-                headers = ['crab_left', 'crab_right', 'left_eye', 'right_eye', 'carapace_end', 'tail_end']
+                headers = ['crab_left', 'crab_right', 'left_eye', 'right_eye', 'carapace_end', 'tail_end', 'last_segment']
                 writer.writerow(headers)
                 writer.writerow(flattened_coordinates)
             print(f"Keypoints saved to: {csv_path}")
