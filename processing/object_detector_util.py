@@ -234,12 +234,16 @@ def process_realtime(frame):
     #Removes padding offset
     pos_y = ((y_target - x) / 2)
     y1 = y1 - pos_y
-    y2 = y2 + pos_y
+    y2 = y2 - pos_y
 
     #Scale back to original width
     x1 = x1 * (original_width / 1280)
     x2 = x2 * (original_width / 1280)
 
+    x1 = max(0, min(int(x1), original_width))
+    y1 = max(0, min(int(y1), original_height))
+    x2 = max(0, min(int(x2), original_width))
+    y2 = max(0, min(int(y2), original_height))
 
 
     fb0 = fixed_box_size[0] // 2
