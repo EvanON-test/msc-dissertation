@@ -11,6 +11,8 @@ preloaded_interpreter = None
 preloaded_input_details = None
 preloaded_output_details = None
 
+#TODO: implement any useful changes from realtime version into process(avepoint version)
+#TODO: comment your stuff, even the simple stuff
 #loads model using global variables
 def load_model():
     global preloaded_interpreter
@@ -43,14 +45,8 @@ def unload_model():
 
 
 
-##GPU - rescale to 640, 640. No current benefit
-# def rescale_image_gpu(image, target_size=(640,640)):
-#     gpu_image = cv2.cuda_GpuMat()
-#     gpu_image.upload(image)
-#     gpu_image_resized = cv2.cuda.resize(gpu_image, target_size)
-#     result = gpu_image_resized.download()
-#     return result
-#TODO: implement any useful changes from realtime version into here
+
+
 def process(savepoint):
 
     cropped_frames = []
@@ -147,7 +143,7 @@ def process(savepoint):
 
     return np.array(cropped_frames)
 
-#TODO: update comemnts after finalisation
+
 #Realtime version - slightly modified version of above...with more modifications for better loading
 def process_realtime(frame):
     global preloaded_interpreter
@@ -173,22 +169,23 @@ def process_realtime(frame):
 
     # input_data = cv2.cvtColor(input_data, cv2.COLOR_BGR2GRAY)
 
-    # pad to 1280,1280
+    # pad to 1280,1280 to make a square
     fill_color = (0, 0, 0, 255)
     x, y, c = true_scale_image.shape
     x_target, y_target = 1280, 1280
+
+    #creates a sqaure canvas
     new_im = Image.new('RGBA', (x_target, y_target), fill_color)
+
+    #calculatesvertical centering offset
     # pos_x = (int((x_target - x) / 2))
     pos_y = (int((y_target - x) / 2))
+
+    #pastes into centre of the square canvas
     new_im.paste(Image.fromarray(np.uint8(true_scale_image)), (0, pos_y))
     expanded_image = np.array(new_im)[..., :3]
 
-    # # GPU - rescale to 640, 640
-    # try:
-    #     modified_image = rescale_image_gpu(expanded_image)
-    #     print("GPU used")
-    # except Exception as e :
-    # rescale to 640, 640
+
     modified_image = cv2.resize(expanded_image, (640, 640))
 
     input_data = np.reshape(modified_image, (1, 640, 640, 3))
@@ -198,22 +195,24 @@ def process_realtime(frame):
     b, h, w, ch = input_data.shape
     scale = max_size / ns / max(h, w)
 
+    #feeds input details into model and execute it
     interpreter.set_tensor(
         input_details[0]['index'],
         input_data.astype(np.float32))
     interpreter.invoke()
 
+    #extracts detection results
     y = []
     for output in output_details:
         y.append(interpreter.get_tensor(output['index']))
     y = [x if isinstance(x, np.ndarray) else x.numpy() for x in y]
     y[0][..., :4] *= [w, h, w, h]  # xywh normalized to pixels
 
+    #Apply NMS, seperate file, to filter overlapping detections
     x1, y1, x2, y2, conf, class_index = non_max_suppression(y[0])[0][0]
-    # #TODO: TEST THIS
-    print(f"DEBUG: DETECTED CLASS INDEX: {class_index}, CONFIDENCE: {conf:.2f}")
 
-    #Added to reduce initial issues regarding small object
+    #Rejects small detections - poor approach to reduce issues regarding small object detections
+    #TODO: Improve this later
     width = x2 - x1
     height = y2 - y1
     if width < 20 or height < 20:
@@ -223,6 +222,25 @@ def process_realtime(frame):
     # print(x1, y1, x2, y2)
     # x1, y1, x2, y2 = x1*scale, y1*scale, x2*scale, y2*scale
     x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+
+    #TODO: test out this approach to fixing bbox (essintially undoing preprocessing)
+    #get original dimensions
+    original_height, original_width = true_scale_image.shape[:2]
+
+    #scale back to original
+    scale_factor = 1280 / 640
+    x1, y1, x2, y2 = x1*scale_factor, y1*scale_factor, x2*scale_factor, y2*scale_factor
+
+    #Removes padding offset
+    pos_y = ((y_target - x) / 2)
+    y1 = y1 - pos_y
+    y2 = y2 + pos_y
+
+    #Scale back to original width
+    x1 = x1 * (original_width / 1280)
+    x2 = x2 * (original_width / 1280)
+
+
 
     fb0 = fixed_box_size[0] // 2
     fb1 = fixed_box_size[1] // 2
