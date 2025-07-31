@@ -114,12 +114,17 @@ def process(savepoint):
         # x1, y1, x2, y2 = x1*scale, y1*scale, x2*scale, y2*scale
         x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
-        #TODO: TEST NEW
+        #TODO: FICX BOUNDING HERE FIRST BEFORE MOVING BACK TO REALTIME
         annotated_image = modified_image.copy()
-        cv2.rectangle(annotated_image, (y1, y2), (x2, y2), (0, 255, 0), 2)
+        cv2.rectangle(annotated_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
         confidence_label = f"Confidence: {conf}"
         cv2.putText(annotated_image, confidence_label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+        if hasattr(class_index, '__len__') or class_index is not None:
+            class_label = f"Class index: {int(class_index)}"
+            cv2.putText(annotated_image, class_label, (x1, y1 - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
 
         annotated_frames.append(annotated_image)
 
