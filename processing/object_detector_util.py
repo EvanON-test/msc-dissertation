@@ -50,6 +50,7 @@ def unload_model():
 def process(savepoint):
 
     cropped_frames = []
+    annotated_frames = []
 
     fixed_box_size = np.asarray([539,561])
     
@@ -112,6 +113,17 @@ def process(savepoint):
         # print(x1, y1, x2, y2)
         # x1, y1, x2, y2 = x1*scale, y1*scale, x2*scale, y2*scale
         x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+
+        #TODO: TEST NEW
+        annotated_image = modified_image.copy()
+        cv2.rectangle(annotated_image, (y1, y2), (x2, y2), (0, 255, 0), 2)
+
+        confidence_label = f"Confidence: {conf}"
+        cv2.putText(annotated_image, confidence_label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+        annotated_frames.append(annotated_image)
+
+        cv2.imwrite(f"./processing/extracted_frames/{image_name}.png", annotated_image)
 
         # fb0 = fixed_box_size[0]//2
         # fb1 = fixed_box_size[1]//2
@@ -272,21 +284,21 @@ def process_realtime(frame):
     #TODO: test the for loop change and return change
     #ORIGINAL
 
-    # crop = np.zeros((fixed_box_size[0], fixed_box_size[1]))
-    # for i in range(crop.shape[0]):
-    #     for j in range(crop.shape[1]):
-    #         ii, jj = y1 + i, y2 + j
-    #         if (ii < gray_true_scale_image.shape[0] and
-    #                 jj < gray_true_scale_image.shape[1]):
-    #             crop[i][j] = gray_true_scale_image[ii][jj]
-
     crop = np.zeros((fixed_box_size[0], fixed_box_size[1]))
     for i in range(crop.shape[0]):
         for j in range(crop.shape[1]):
-            ii, jj = y1 + i, x1 + j
+            ii, jj = y1 + i, y2 + j
             if (ii < gray_true_scale_image.shape[0] and
                     jj < gray_true_scale_image.shape[1]):
                 crop[i][j] = gray_true_scale_image[ii][jj]
+
+    # crop = np.zeros((fixed_box_size[0], fixed_box_size[1]))
+    # for i in range(crop.shape[0]):
+    #     for j in range(crop.shape[1]):
+    #         ii, jj = y1 + i, x1 + j
+    #         if (ii < gray_true_scale_image.shape[0] and
+    #                 jj < gray_true_scale_image.shape[1]):
+    #             crop[i][j] = gray_true_scale_image[ii][jj]
 
     cropped_frames.append(crop)
 
@@ -300,5 +312,6 @@ def process_realtime(frame):
 
     #tried fiddling with return
     #ORIGINAL:   np.array(cropped_frames)
+    #crop.astype(np.uint8)
 
-    return crop.astype(np.uint8), conf, (x1, y1, x2, y2)
+    return np.array(cropped_frames), conf, (x1, y1, x2, y2)
