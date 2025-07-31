@@ -113,12 +113,12 @@ def process(savepoint):
         # x1, y1, x2, y2 = x1*scale, y1*scale, x2*scale, y2*scale
         x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
-        fb0 = fixed_box_size[0]//2
-        fb1 = fixed_box_size[1]//2
+        # fb0 = fixed_box_size[0]//2
+        # fb1 = fixed_box_size[1]//2
 
-        start = (y1, y2)
-        end = (y1+fb0, y2+fb1)
-        plot = cv2.rectangle(modified_image, start, end, (0,255,0), 3)
+        # start = (y1, y2)
+        # end = (y1+fb0, y2+fb1)
+        # plot = cv2.rectangle(modified_image, start, end, (0,255,0), 3)
     
         gray_true_scale_image = cv2.cvtColor(true_scale_image, cv2.COLOR_BGR2GRAY)
 
@@ -257,22 +257,33 @@ def process_realtime(frame):
     x2 = min(original_width, int(x2_final))
     y2 = min(original_height, int(y2_final))
 
-    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+    # x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
 
-    fb0 = fixed_box_size[0] // 2
-    fb1 = fixed_box_size[1] // 2
+    # fb0 = fixed_box_size[0] // 2
+    # fb1 = fixed_box_size[1] // 2
 
-    start = (y1, y2)
-    end = (y1 + fb0, y2 + fb1)
-    plot = cv2.rectangle(modified_image, start, end, (0, 255, 0), 3)
+    # start = (y1, y2)
+    # end = (y1 + fb0, y2 + fb1)
+    # plot = cv2.rectangle(modified_image, start, end, (0, 255, 0), 3)
 
     gray_true_scale_image = cv2.cvtColor(true_scale_image, cv2.COLOR_BGR2GRAY)
+
+    #TODO: test the for loop change and return change
+    #ORIGINAL
+
+    # crop = np.zeros((fixed_box_size[0], fixed_box_size[1]))
+    # for i in range(crop.shape[0]):
+    #     for j in range(crop.shape[1]):
+    #         ii, jj = y1 + i, y2 + j
+    #         if (ii < gray_true_scale_image.shape[0] and
+    #                 jj < gray_true_scale_image.shape[1]):
+    #             crop[i][j] = gray_true_scale_image[ii][jj]
 
     crop = np.zeros((fixed_box_size[0], fixed_box_size[1]))
     for i in range(crop.shape[0]):
         for j in range(crop.shape[1]):
-            ii, jj = y1 + i, y2 + j
+            ii, jj = y1 + i, x1 + j
             if (ii < gray_true_scale_image.shape[0] and
                     jj < gray_true_scale_image.shape[1]):
                 crop[i][j] = gray_true_scale_image[ii][jj]
@@ -287,4 +298,7 @@ def process_realtime(frame):
     # cast coords to int, draw box on image
     # showw("img", plot)
 
-    return np.array(cropped_frames), conf, (x1, y1, x2, y2)
+    #tried fiddling with return
+    #ORIGINAL:   np.array(cropped_frames)
+
+    return crop.astype(np.uint8), conf, (x1, y1, x2, y2)
