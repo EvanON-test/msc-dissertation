@@ -103,10 +103,9 @@ class SaveDetectionThread(Thread):
             flattened_coordinates = coordinates.flatten()
             with open(csv_path, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
-                # TODO: add 7 more headers and do an x and y version of each
                 #keypoint detector returns 7 keypoints with 2 cords each. Updated their names based on rereading the Research paper
                 # headers = ['x1, y1', 'x2', 'y2', 'x3', 'y3', 'x4', 'y4', 'x5', 'y5', 'x6', 'y6', 'x7', 'y7']
-                headers = ['crab_left', 'crab_right', 'left_eye', 'right_eye', 'carapace_end', 'tail_end', 'last_segment']
+                headers = ['crab_left_x1', 'crab_left_y1', 'crab_right_x2', 'crab_right_y2', 'left_eye_x3', 'left_eye_y3', 'right_eye_x4', 'right_eye_y4', 'carapace_end_x5', 'carapace_end_y5', 'tail_end_x6', 'tail_end_y6', 'last_segment_x7', 'last_segment_y7']
                 writer.writerow(headers)
                 writer.writerow(flattened_coordinates)
             print(f"Keypoints saved to: {csv_path}")
@@ -123,7 +122,6 @@ class SaveDetectionThread(Thread):
 
 
 #TODO: update comments and README later (not changed since new approach)
-#TODO: adjusted back to 30 frmaes
 class RealtimePipelineDemo:
     """Main class for running the realtime pipeline. Orchestrates the capture, display and processing of frames.
     This includes managing the created cpature and processing threads"""
@@ -131,7 +129,7 @@ class RealtimePipelineDemo:
         #Forces os's primary display (negates issues arising via ssh given commands)
         os.environ['DISPLAY'] = ':0'
         #TODO: Gstreamer pipeline. Elaborated in notion ADD more context here when cleaning up
-        self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=640,height=480,framerate=10/1 ! nvvidconv ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
+        self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=640,height=480,framerate=5/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
         self.process_every_n_frames = process_every_n_frames
 
         self.detection_box = None
@@ -310,7 +308,7 @@ class RealtimePipelineDemo:
                     hardware_metrics = self.get_metrics()
                 #builds an overlay string to be displayed
                 display_info = f"Resolution: {width}x{height}, FPS: {current_fps}"
-                hardware_info = f"CPU Percent: {hardware_metrics['cpu_percent']}%, CPU Temp: {hardware_metrics['cpu_temp']}, RAM Percent:{hardware_metrics['ram_percent']} GPU: {hardware_metrics['gpu_temp']}"
+                hardware_info = f"CPU Percent: {hardware_metrics['cpu_percent']}%\nCPU Temp: {hardware_metrics['cpu_temp']}\nRAM Percent:{hardware_metrics['ram_percent']}%\nGPU: {hardware_metrics['gpu_temp']}"
                 # Adds text overlay to frame. Some is self explanatory. (10, 10) = (left, top). 0.5 = font size. (0, 255, 0) = hex colour green. 2 = text thickness
                 cv2.putText(display_frame, display_info, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                 cv2.putText(display_frame, hardware_info, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
