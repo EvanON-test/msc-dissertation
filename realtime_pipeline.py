@@ -81,13 +81,14 @@ class SaveDetectionThread(Thread):
             print(f"Saved high confidence frame: {self.confidence:.2f}")
 
             #processes the roi through the KD beofre returning the coordinates
-            coordinates = kd.process(self.roi_frames)
+            coordinates = kd.realtime_process(self.roi_frames)
             # generates the unique filename for keypoint information and flattens it beofre writing it ot hte csv file
             csv_filename = f"{timestamp}_keypoints.csv"
             csv_path = os.path.join(detection_dir, csv_filename)
             flattened_coordinates = coordinates.flatten()
             with open(csv_path, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
+                #TODO: add 7 more headers and do an x and y version of each
                 #keypoint detector returns 7 keypoints with 2 cords each. Updated their names based on rereading the Research paper
                 # headers = ['x1, y1', 'x2', 'y2', 'x3', 'y3', 'x4', 'y4', 'x5', 'y5', 'x6', 'y6', 'x7', 'y7']
                 headers = ['crab_left', 'crab_right', 'left_eye', 'right_eye', 'carapace_end', 'tail_end', 'last_segment']
@@ -109,7 +110,6 @@ class RealtimePipeline:
      before saving high confidence detections, in a separate thread."""
     def __init__(self, process_every_n_frames=30):
         #TODO: Gstreamer pipeline. Elaborated in notion MAYBE add more context later
-        #TODO: test different resolutions (640, 480 original)
         self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=640,height=480,framerate=15/1 ! nvvidconv ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
         #cadence of frames to process
         self.process_every_n_frames = process_every_n_frames
