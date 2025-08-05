@@ -265,7 +265,6 @@ class RealtimePipelineDemo:
                 frame_counter += 1
 
                 if frame_counter % self.process_every_n_frames == 0:
-                    hardware_metrics = self.get_metrics()
                     motion_detected = self.detect_motion(frame)
                     if not motion_detected:
                         print("Failed to detect motion.")
@@ -306,6 +305,9 @@ class RealtimePipelineDemo:
 
                     self.detection_age += 1
 
+                hardware_metrics = self.get_metrics()
+                if frame_counter % self.process_every_n_frames == 0:
+                    hardware_metrics = self.get_metrics()
                 #builds an overlay string to be displayed
                 display_info = f"Resolution: {width}x{height}, FPS: {current_fps}"
                 hardware_info = f"CPU Percent: {hardware_metrics['cpu_percent']}%, CPU Temp: {hardware_metrics['cpu_temp']}, RAM Percent:{hardware_metrics['ram_percent']} GPU: {hardware_metrics['gpu_temp']}"
