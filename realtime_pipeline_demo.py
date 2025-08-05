@@ -154,25 +154,30 @@ class RealtimePipelineDemo:
         """Gathers metrics that have common access approaches in both devices and the specific device"""
         machine = platform.machine()
         metrics = {}
-        metrics['cpu_percent'] = psutil.cpu_percent(interval=None)
-        memory = psutil.virtual_memory()
-        metrics['ram_percent'] = memory.percent
-        if machine == "armv7l":
-            cpu_temp_pi = CPUTemperature().temperature
-            metrics['cpu_temp'] = round(cpu_temp_pi, 1)
-            # # TODO: Reinvestigate the options for these later
-            # # Sets the currently non-gatherable metrics to None
-            # metrics['gpu_percent'] = "N/A"
-            # metrics['gpu_temp'] = "N/A"
-            # metrics['power_used'] = "N/A"
-        elif machine == "aarch64":
-            # gets the nano metrics using the jtop service object
-            metrics['cpu_temp'] = self.jetson.temperature.get('CPU').get('temp')
-            metrics['gpu_temp'] = self.jetson.temperature.get('GPU').get('temp')
-            # Power metrics not possible on this iteration of NVIDIA's device
-            # metrics['power_used'] = "N/A"
-        else:
-            print("Unknown machine")
+        try:
+            metrics['cpu_percent'] = psutil.cpu_percent(interval=None)
+            memory = psutil.virtual_memory()
+            metrics['ram_percent'] = memory.percent
+            if machine == "armv7l":
+                cpu_temp_pi = CPUTemperature().temperature
+                metrics['cpu_temp'] = round(cpu_temp_pi, 1)
+                # # TODO: Reinvestigate the options for these later
+                # # Sets the currently non-gatherable metrics to None
+                # metrics['gpu_percent'] = "N/A"
+                # metrics['gpu_temp'] = "N/A"
+                # metrics['power_used'] = "N/A"
+            elif machine == "aarch64":
+                # gets the nano metrics using the jtop service object
+                metrics['cpu_temp'] = self.jetson.temperature.get('CPU').get('temp')
+                metrics['gpu_temp'] = self.jetson.temperature.get('GPU').get('temp')
+                # Power metrics not possible on this iteration of NVIDIA's device
+                # metrics['power_used'] = "N/A"
+            else:
+                print("Unknown machine")
+                metrics['cpu_temp'] = "N/A"
+                metrics['gpu_temp'] = "N/A"
+        except Exception as e:
+            print(f"Error getting metrics: {e}")
         return metrics
 
 
