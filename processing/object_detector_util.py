@@ -116,13 +116,28 @@ def process(savepoint):
         y = [x if isinstance(x, np.ndarray) else x.numpy() for x in y]
         y[0][..., :4] *= [w, h, w, h]  # xywh normalized to pixels
 
-        x1, y1, x2, y2, conf, class_index = non_max_suppression(y[0])[0][0]
+
+        # x1, y1, x2, y2, conf, class_index = non_max_suppression(y[0])[0][0]
+        #TODO: TEST NEW APPROACH
+        detections = non_max_suppression(y[0])
+        if len(detections[0]) == 0:
+            print(f"No detections found for {image_name}!")
+            continue
+
+        x1, y1, x2, y2, conf, class_index = detections[0][0]
+
+        if conf < 0.75:
+            print(f"Low confidence detection: {conf}")
+            continue
+
+
+
 
         # print(x1, y1, x2, y2)
         # x1, y1, x2, y2 = x1*scale, y1*scale, x2*scale, y2*scale
         x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
-        #TODO: test this
+        #TODO: tested this
 
         # scale back to original
         scale_factor = 1280 / 640
@@ -145,9 +160,9 @@ def process(savepoint):
         x2 = min(original_width, int(x2_final))
         y2 = min(original_height, int(y2_final))
 
-        # TODO: test this
+        # TODO: tested this
 
-        #TODO: FIX BOUNDING HERE FIRST BEFORE MOVING BACK TO REALTIME - NOTE IT HAS HELPED BUT STILL WRONG
+        #TODO: FIX BOUNDING HERE FIRST BEFORE MOVING BACK TO REALTIME - CHANGES HAVE HELPED BUT STILL WRONG
         annotated_image = true_scale_image.copy()
         cv2.rectangle(annotated_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
@@ -162,7 +177,7 @@ def process(savepoint):
 
         annotated_frames.append(annotated_image)
 
-        cv2.imwrite(f"./processing/extracted_frames/{image_name}.png", annotated_image)
+        cv2.imwrite(f"./processing/extracted_frames/{image_name}", annotated_image)
 
         # fb0 = fixed_box_size[0]//2
         # fb1 = fixed_box_size[1]//2
