@@ -76,11 +76,19 @@ def process(savepoint):
         x, y, c = true_scale_image.shape
         x_target, y_target = 1280, 1280
         new_im = Image.new('RGBA', (x_target, y_target), fill_color)
-        # pos_x = (int((x_target - x) / 2))
-        pos_y = (int((y_target - x) / 2))
-        new_im.paste(Image.fromarray(np.uint8(true_scale_image)), (0, pos_y))
-        expanded_image = np.array(new_im)[...,:3]
+        # # pos_x = (int((x_target - x) / 2))
+        # pos_y = (int((y_target - x) / 2))
+        # new_im.paste(Image.fromarray(np.uint8(true_scale_image)), (0, pos_y))
+        # expanded_image = np.array(new_im)[...,:3]
 
+        #TODO: test this
+        original_height, original_width = true_scale_image.shape[:2]
+        pos_x = int((1280 - original_width) / 2)
+        pos_y = int((1280 - original_height) / 2)
+
+        # pastes into centre of the square canvas
+        new_im.paste(Image.fromarray(np.uint8(true_scale_image)), (pos_x, pos_y))
+        expanded_image = np.array(new_im)[..., :3]
 
         # # GPU - rescale to 640, 640
         # try:
@@ -115,7 +123,6 @@ def process(savepoint):
         x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
         #TODO: test this
-        original_height, original_width = true_scale_image.shape[:2]
 
         # scale back to original
         scale_factor = 1280 / 640
