@@ -148,7 +148,7 @@ def process(savepoint):
         # TODO: test this
 
         #TODO: FIX BOUNDING HERE FIRST BEFORE MOVING BACK TO REALTIME - NOTE IT HAS HELPED BUT STILL WRONG
-        annotated_image = modified_image.copy()
+        annotated_image = true_scale_image.copy()
         cv2.rectangle(annotated_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
         confidence_label = f"Confidence: {conf}"
@@ -173,11 +173,20 @@ def process(savepoint):
     
         gray_true_scale_image = cv2.cvtColor(true_scale_image, cv2.COLOR_BGR2GRAY)
 
+        # crop = np.zeros((fixed_box_size[0], fixed_box_size[1]))
+        # for i in range(crop.shape[0]):
+        #     for j in range(crop.shape[1]):
+        #         ii, jj = y1+i, y2+j
+        #         if (ii < gray_true_scale_image.shape[0] and
+        #             jj < gray_true_scale_image.shape[1]):
+        #             crop[i][j] = gray_true_scale_image[ii][jj]
+
+        #TODO: TEST
         crop = np.zeros((fixed_box_size[0], fixed_box_size[1]))
         for i in range(crop.shape[0]):
             for j in range(crop.shape[1]):
-                ii, jj = y1+i, y2+j
-                if (ii < gray_true_scale_image.shape[0] and 
+                ii, jj = y1+i, x1+j
+                if (ii < gray_true_scale_image.shape[0] and
                     jj < gray_true_scale_image.shape[1]):
                     crop[i][j] = gray_true_scale_image[ii][jj]
 
