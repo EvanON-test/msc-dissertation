@@ -149,7 +149,7 @@ class ObjectDetectorThread(Thread):
 
 
 #TODO: update comments and README later (not changed since new approach)
-class RealtimePipelineDemo:
+class RealtimePipeline:
     """Main class for running the realtime pipeline. Orchestrates the capture, display and processing of frames.
     This includes managing the created cpature and processing threads"""
     def __init__(self, process_every_n_frames=60):
@@ -324,5 +324,5 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run a CV pipeline with camera capture and processing')
     parser.add_argument("--frames_interval", type=int, default=60, help="Process every N frmaes (60 default)")
     args = parser.parse_args()
-    realtime_pipeline = RealtimePipelineDemo(process_every_n_frames=args.frames_interval)
+    realtime_pipeline = RealtimePipeline(process_every_n_frames=args.frames_interval)
     realtime_pipeline.run()
