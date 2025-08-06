@@ -1,6 +1,6 @@
 #TODO: DONT FORGET TO cite the code sections you have used formally (gst, gfg etc)
 #TODO: test with 60, 30, 15 etc various levels for basic performance understanding
-
+import queue
 import time
 import numpy as np
 import cv2
@@ -140,7 +140,7 @@ class ObjectDetectorThread(Thread):
             return
         while self.running:
             try:
-                frame_data = self.frame_queue.get(timeout=1)
+                frame_data = self.frame_queue.get(timeout=2)
                 if frame_data is None:
                     continue
 
@@ -151,6 +151,8 @@ class ObjectDetectorThread(Thread):
                 roi_frames, confidence, bbox = od.process_realtime(frame)
                 print(f"Frame processed successfully, confidence: {confidence:.2f}")
                 self.result_queue.put((frame, roi_frames, confidence, bbox, frame_counter))
+            except queue.Empty:
+                continue
             except Exception as e:
                 print(f"Error in Object Detection Thread: {e}")
 
@@ -312,7 +314,7 @@ class RealtimePipelineDemo:
                         try:
                             self.detection_queue.put_nowait((frame.copy(), frame_counter))
                             print(f"Submitted frame: {frame_counter} fro detection")
-                        except queue.Full:
+                        except Exception as e:
                             print("Detection queue is full.")
                     else:
                         print("Failed to detect motion.")
@@ -356,13 +358,18 @@ class RealtimePipelineDemo:
                     hardware_metrics = self.get_metrics()
                 #builds an overlay string to be displayed
                 display_info = f"Resolution: {width}x{height}, FPS: {current_fps}"
-                hardware_info = f"""CPU Percent: {hardware_metrics['cpu_percent']}%
-                    CPU Temp: {hardware_metrics['cpu_temp']}
-                    RAM Percent:{hardware_metrics['ram_percent']}%
-                    GPU: {hardware_metrics['gpu_temp']}"""
                 # Adds text overlay to frame. Some is self explanatory. (10, 10) = (left, top). 0.5 = font size. (0, 255, 0) = hex colour green. 2 = text thickness
                 cv2.putText(display_frame, display_info, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                cv2.putText(display_frame, hardware_info, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+                # hardware_info = f"""CPU Percent: {hardware_metrics['cpu_percent']}%
+                #     CPU Temp: {hardware_metrics['cpu_temp']}
+                #     RAM Percent:{hardware_metrics['ram_percent']}%
+                #     GPU: {hardware_metrics['gpu_temp']}"""
+
+                cv2.putText(display_frame, f"CPU: {hardware_metrics['cpu_percent']}%", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv2.putText(display_frame, f"CPU Temp: {hardware_metrics['cpu_temp']} celsius", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv2.putText(display_frame, f"RAM: {hardware_metrics['ram_percent']}%", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv2.putText(display_frame, f"GPU: {hardware_metrics['gpu_percent']} celsius", (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
                 # displys the frame
                 cv2.imshow('Live Feed', display_frame)
