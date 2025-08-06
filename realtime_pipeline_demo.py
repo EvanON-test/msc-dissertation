@@ -1,7 +1,7 @@
 #TODO: DONT FORGET TO cite the code sections you have used formally (gst, gfg etc)
 #TODO: test with 60, 30, 15 etc various levels for basic performance understanding
-import time
 
+import time
 import numpy as np
 import cv2
 import sys
@@ -9,11 +9,13 @@ import os
 from threading import Thread, Event, Lock
 import argparse
 import datetime
-import pipeline
 import gc
 import csv
 import platform
 import psutil
+from queue import Queue
+
+
 
 #Utilised try bocks to allow for failure, due to the wrong hardware
 #jtop is a nano specific library for accessing hardware metrics
@@ -32,7 +34,7 @@ import processing.keypoint_detector_util as kd
 
 
 
-# #TODO: THIS IS DUPLICATED - CLEAN UOP LATER THOUGH - Potentially slim it as just to save image & keypoints
+# #TODO: THIS IS DUPLICATED - CAN IMPROVE LATER ITERATIONS - Potentially slim it as just to save image & keypoints
 class SaveDetectionThread(Thread):
     """A separate thread that further processes and saves information regarding the detections. Currently further processes the frame to get the keypoint data
     before saving it as a csv file as well as saving the frame as well as the frame with the bounded box on"""
@@ -66,7 +68,7 @@ class SaveDetectionThread(Thread):
             detection_dir = os.path.join(self.output_directory, f"{timestamp}_Detection")
             os.mkdir(detection_dir)
 
-            #TODO: remove this after debugging finished
+            #TODO: remove this after debugging finished?
             frame_with_bbox = self.frame.copy()
             x1, y1, x2, y2 = self.bbox
             # frame_height, frame_width = frame_with_bbox.shape[:2]
@@ -118,6 +120,41 @@ class SaveDetectionThread(Thread):
         except Exception as e:
             print(f"ERROR SAVING DETECTION...{e}")
 
+#TODO: Iterate and improve on this threaded approach. USE MONITORING AND DOCS
+class ObjectDetectorThread(Thread):
+    def __init__(self, frame_queue, result_queue):
+        super().__init__()
+        self.frame_queue = frame_queue
+        self.result_queue = result_queue
+        self.running = True
+
+    def stop(self):
+        self.running = False
+
+    def run(self):
+        try:
+            print("Loading Object Detector...")
+            od.load_model()
+        except Exception as e:
+            print(f"Failed to load Object Detector due to: {e}")
+            return
+        while self.running:
+            try:
+                frame_data = self.frame_queue.get(timeout=1)
+                if frame_data is None:
+                    continue
+
+                frame, frame_counter = frame_data
+
+                print(f"Processing frame:  {frame_counter} for Object Detection")
+                # processes frame through object detector which outputs region of interest and confidence level
+                roi_frames, confidence, bbox = od.process_realtime(frame)
+                print(f"Frame processed successfully, confidence: {confidence:.2f}")
+                self.result_queue.put((frame, roi_frames, confidence, bbox, frame_counter))
+            except Exception as e:
+                print(f"Error in Object Detection Thread: {e}")
+
+
 
 
 
@@ -125,11 +162,11 @@ class SaveDetectionThread(Thread):
 class RealtimePipelineDemo:
     """Main class for running the realtime pipeline. Orchestrates the capture, display and processing of frames.
     This includes managing the created cpature and processing threads"""
-    def __init__(self, process_every_n_frames=30):
+    def __init__(self, process_every_n_frames=60):
         #Forces os's primary display (negates issues arising via ssh given commands)
         os.environ['DISPLAY'] = ':0'
         #TODO: Gstreamer pipeline. Elaborated in notion ADD more context here when cleaning up
-        self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=640,height=480,framerate=5/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
+        self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=640,height=480,framerate=15/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
         self.process_every_n_frames = process_every_n_frames
 
         self.detection_box = None
@@ -139,7 +176,7 @@ class RealtimePipelineDemo:
         #Stores previous frame for use in motion detection
         self.previous_frame = None
         #Minimum level, percentage, above which motion detection function is triggered
-        self.detection_minimum = 20
+        self.detection_minimum = 15
 
         self.detection_count = 0
         # starttime used for calculating runtime
@@ -147,6 +184,11 @@ class RealtimePipelineDemo:
 
         #Metrics output
         self.jetson = jtop()
+
+        #Object detection thread
+        self.detection_queue = Queue(maxsize=2)
+        self.result_queue = Queue(maxsize=6)
+        self.detection_thread = ObjectDetectorThread(self.detection_queue, self.result_queue)
 
     def get_metrics(self):
         """Gathers metrics that have common access approaches in both devices and the specific device"""
@@ -215,7 +257,7 @@ class RealtimePipelineDemo:
         """Creates, configures and starts both threads befroe waiting for completion and cleanly shutting down"""
         self.start_time = time.time()
         #Load the models
-        od.load_model()
+        # od.load_model()
         # kd.load_model()
 
         try:
@@ -242,6 +284,8 @@ class RealtimePipelineDemo:
             if self.jetson:
                 self.jetson.start()
 
+            self.detection_thread.start()
+
             # The main loop, continues until quit
             while True:
                 # reads next frame from camera
@@ -264,16 +308,22 @@ class RealtimePipelineDemo:
 
                 if frame_counter % self.process_every_n_frames == 0:
                     motion_detected = self.detect_motion(frame)
-                    if not motion_detected:
+                    if motion_detected:
+                        try:
+                            self.detection_queue.put_nowait((frame.copy(), frame_counter))
+                            print(f"Submitted frame: {frame_counter} fro detection")
+                        except queue.Full:
+                            print("Detection queue is full.")
+                    else:
                         print("Failed to detect motion.")
                         continue
-                    else:
-                        try:
-                            print(f"Processing frame:  {frame_counter} for Object Detection")
-                            # processes frame through object detector which outputs region of interest and confidence level
-                            roi_frames, confidence, bbox = od.process_realtime(frame)
-                            print(f"Frame processed successfully, confidence: {confidence:.2f}")
-                            if confidence > 0.70:
+
+
+                    try:
+                        while not self.result_queue.empty():
+                            frame, roi_frames, confidence, bbox, frame_counter = self.result_queue.get_nowait()
+                            print(f"Recieved detection result For frame:  {frame_counter}, Confidence: {confidence}")
+                            if confidence > 0.75:
                                 self.detection_age = 0
                                 self.detection_confidence = confidence
                                 self.detection_box = bbox
@@ -283,16 +333,14 @@ class RealtimePipelineDemo:
                                     #Calling the save detection processes in another thread with all the detection data
                                     saving_thread = SaveDetectionThread(frame.copy(), roi_frames, confidence, bbox, frame_counter)
                                     saving_thread.start()
-
-                                    #TODO: could always reintroduce a wait time here while testing
                                 except Exception as e:
                                     print(f'ERROR while implementing SaveDetectionThread: {e}')
                                 # clean memory
                                 del roi_frames, confidence, bbox
                                 gc.collect()
-                        except Exception as e:
-                            print(f"OD ERROR. Caused by: {e}")
-                if self.detection_age < 15:
+                    except Exception as e:
+                        print(f"Detection Queue empty. Further Details: {e}")
+                if self.detection_age < 25:
                     detection_text = f"Detection: {self.detection_confidence:.2f}"
                     cv2.putText(display_frame, detection_text, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
@@ -308,7 +356,10 @@ class RealtimePipelineDemo:
                     hardware_metrics = self.get_metrics()
                 #builds an overlay string to be displayed
                 display_info = f"Resolution: {width}x{height}, FPS: {current_fps}"
-                hardware_info = f"CPU Percent: {hardware_metrics['cpu_percent']}%\nCPU Temp: {hardware_metrics['cpu_temp']}\nRAM Percent:{hardware_metrics['ram_percent']}%\nGPU: {hardware_metrics['gpu_temp']}"
+                hardware_info = f"""CPU Percent: {hardware_metrics['cpu_percent']}%
+                    CPU Temp: {hardware_metrics['cpu_temp']}
+                    RAM Percent:{hardware_metrics['ram_percent']}%
+                    GPU: {hardware_metrics['gpu_temp']}"""
                 # Adds text overlay to frame. Some is self explanatory. (10, 10) = (left, top). 0.5 = font size. (0, 255, 0) = hex colour green. 2 = text thickness
                 cv2.putText(display_frame, display_info, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                 cv2.putText(display_frame, hardware_info, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
@@ -324,8 +375,6 @@ class RealtimePipelineDemo:
 
         except KeyboardInterrupt:
             print("Interrupted by Keyboard.")
-
-
         except Exception as e:
             print(f"CAPTRUE THREAD: Error has arisen due to: {e}")
         finally:
@@ -335,7 +384,10 @@ class RealtimePipelineDemo:
             od.unload_model()
             if self.jetson:
                 self.jetson.close()
-            # kd.unload_model()
+            if self.detection_thread.is_alive():
+                self.detection_thread.stop()
+                self.detection_thread.join()
+
 
             #Calulates the runtime and provides a summarisation of the overall run
             runtime = time.time() - self.start_time
@@ -349,7 +401,7 @@ class RealtimePipelineDemo:
 if __name__ == "__main__":
     # An updated approach. Argparse approach means the number of runs can added to the cli command
     parser = argparse.ArgumentParser(description='Run a CV pipeline with camera capture and processing')
-    parser.add_argument("--frames_interval", type=int, default=30, help="Process every N frmaes (30 default)")
+    parser.add_argument("--frames_interval", type=int, default=60, help="Process every N frmaes (60 default)")
     args = parser.parse_args()
     realtime_pipeline = RealtimePipelineDemo(process_every_n_frames=args.frames_interval)
     realtime_pipeline.run()
