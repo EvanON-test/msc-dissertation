@@ -114,6 +114,32 @@ def process(savepoint):
         # x1, y1, x2, y2 = x1*scale, y1*scale, x2*scale, y2*scale
         x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
+        #TODO: test this
+        original_height, original_width = true_scale_image.shape[:2]
+
+        # scale back to original
+        scale_factor = 1280 / 640
+        x1_padded = x1 * scale_factor
+        y1_padded = y1 * scale_factor
+        x2_padded = x2 * scale_factor
+        y2_padded = y2 * scale_factor
+
+        # Removes padding offset
+        offset_x = (1280 - original_width) / 2
+        offset_y = (1280 - original_height) / 2
+
+        x1_final = x1_padded - offset_x
+        y1_final = y1_padded - offset_y
+        x2_final = x2_padded - offset_x
+        y2_final = y2_padded - offset_y
+
+        x1 = max(0, int(x1_final))
+        y1 = max(0, int(y1_final))
+        x2 = min(original_width, int(x2_final))
+        y2 = min(original_height, int(y2_final))
+
+        # TODO: test this
+
         #TODO: FIX BOUNDING HERE FIRST BEFORE MOVING BACK TO REALTIME - NOTE IT HAS HELPED BUT STILL WRONG
         annotated_image = modified_image.copy()
         cv2.rectangle(annotated_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
@@ -124,6 +150,7 @@ def process(savepoint):
         if hasattr(class_index, '__len__') or class_index is not None:
             class_label = f"Class index: {int(class_index)}"
             cv2.putText(annotated_image, class_label, (x1, y1 - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
 
 
         annotated_frames.append(annotated_image)
@@ -238,7 +265,7 @@ def process_realtime(frame):
     x1, y1, x2, y2, conf, class_index = non_max_suppression(y[0])[0][0]
 
     #Rejects small detections - poor approach to reduce issues regarding small object detections
-    #TODO: Improve this later
+    #TODO: Remove/Improve this later
     width = x2 - x1
     height = y2 - y1
     if width < 20 or height < 20:

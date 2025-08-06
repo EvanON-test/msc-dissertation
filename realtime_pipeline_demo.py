@@ -78,7 +78,7 @@ class SaveDetectionThread(Thread):
             # print(f"Bbox: x1={x1}, y1={y1}, x2={x2}, y2={y2}")
             # print(f"Bbox width: {bbox_width}, Bbox height: {bbox_height}")
 
-            #TODO: fix this after
+            #TODO: fix this after - this has evidence of working perfectly a few times but not everytime
             #Draws a green box around the detected object (that is the aim at least)
             cv2.rectangle(frame_with_bbox, (x1, y1), (x2, y2), (0, 255, 0), 2)
             #Adds the info alongside the bounding box
