@@ -1,5 +1,5 @@
-#TODO: update comments and README later (not changed since new approach)
-import csv
+import queue
+import time
 import numpy as np
 import cv2
 import sys
@@ -8,14 +8,23 @@ from threading import Thread
 import argparse
 import datetime
 import gc
-import time
+import csv
+import platform
+import psutil
+from queue import Queue
+
+
+
 
 import processing.object_detector_util as od
 import processing.keypoint_detector_util as kd
 
+
+
+# #TODO: THIS IS DUPLICATED - CAN IMPROVE LATER ITERATIONS - Potentially slim it as just to save image & keypoints
 class SaveDetectionThread(Thread):
     """A separate thread that further processes and saves information regarding the detections. Currently further processes the frame to get the keypoint data
-    before saving it as a csv file as well as saving the frame as well as the frame with the bounded box on (TODO: move bounding box to demo when it works)"""
+    before saving it as a csv file as well as saving the frame as well as the frame with the bounded box on"""
     def __init__(self, frame, roi_frames, confidence, bbox, frame_counter):
         """Initialises the thread class as well as the detection data from the realtimepipeline that is needed for the further processing """
         super().__init__()
@@ -46,7 +55,7 @@ class SaveDetectionThread(Thread):
             detection_dir = os.path.join(self.output_directory, f"{timestamp}_Detection")
             os.mkdir(detection_dir)
 
-            #TODO: remove this after debugging finished
+            #TODO: remove this after debugging finished?
             frame_with_bbox = self.frame.copy()
             x1, y1, x2, y2 = self.bbox
             # frame_height, frame_width = frame_with_bbox.shape[:2]
@@ -68,19 +77,15 @@ class SaveDetectionThread(Thread):
             path = os.path.join(detection_dir, image_filename)
             cv2.imwrite(path, self.frame)
 
-            #TODO debug by saving and checking roi_frmaes
-            #generates the unique filename for original image and saves it to the unique directory
-            roi_image_filename = f"roi_{timestamp}_screenshot.jpg"
-            path = os.path.join(detection_dir, roi_image_filename)
-            cv2.imwrite(path, self.roi_frames)
-
             # generates the unique filename for annotated image and saves it to the unique directory
             bbox_image_filename = f"bbox_{timestamp}_screenshot.jpg"
             bbox_path = os.path.join(detection_dir, bbox_image_filename)
             cv2.imwrite(bbox_path, frame_with_bbox)
             print(f"Saved high confidence frame: {self.confidence:.2f}")
 
+
             #processes the roi through the KD beofre returning the coordinates
+            # coordinates = kd.process(self.roi_frames)
             coordinates = kd.realtime_process(self.roi_frames)
             # generates the unique filename for keypoint information and flattens it beofre writing it ot hte csv file
             csv_filename = f"{timestamp}_keypoints.csv"
@@ -88,10 +93,9 @@ class SaveDetectionThread(Thread):
             flattened_coordinates = coordinates.flatten()
             with open(csv_path, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
-                #TODO: add 7 more headers and do an x and y version of each
                 #keypoint detector returns 7 keypoints with 2 cords each. Updated their names based on rereading the Research paper
                 # headers = ['x1, y1', 'x2', 'y2', 'x3', 'y3', 'x4', 'y4', 'x5', 'y5', 'x6', 'y6', 'x7', 'y7']
-                headers = ['crab_left', 'crab_right', 'left_eye', 'right_eye', 'carapace_end', 'tail_end', 'last_segment']
+                headers = ['crab_left_x1', 'crab_left_y1', 'crab_right_x2', 'crab_right_y2', 'left_eye_x3', 'left_eye_y3', 'right_eye_x4', 'right_eye_y4', 'carapace_end_x5', 'carapace_end_y5', 'tail_end_x6', 'tail_end_y6', 'last_segment_x7', 'last_segment_y7']
                 writer.writerow(headers)
                 writer.writerow(flattened_coordinates)
             print(f"Keypoints saved to: {csv_path}")
@@ -104,33 +108,81 @@ class SaveDetectionThread(Thread):
         except Exception as e:
             print(f"ERROR SAVING DETECTION...{e}")
 
-#TODO: can find a way to test your new pipeline on the saved video?
-class RealtimePipeline:
-    """Main class for running the realtime pipeline. Orchestrates the capture, motion detection and processing of frames
-     before saving high confidence detections, in a separate thread."""
-    def __init__(self, process_every_n_frames=30):
-        #TODO: Gstreamer pipeline. Elaborated in notion MAYBE add more context later
-        self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=640,height=480,framerate=15/1 ! nvvidconv ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
-        #cadence of frames to process
-        self.process_every_n_frames = process_every_n_frames
-        # Threshold at which above it  will engage detection to be saved
-        self.confidence_threshold = 0.85
+#TODO: Iterate and improve on this threaded approach. USE MONITORING AND DOCS
+class ObjectDetectorThread(Thread):
+    def __init__(self, frame_queue, result_queue):
+        super().__init__()
+        self.frame_queue = frame_queue
+        self.result_queue = result_queue
+        self.running = True
 
-        #Stores most recent detection
-        self.motion_detected = None
-        #Stores latest confidence level
+    def stop(self):
+        self.running = False
+
+    def run(self):
+        try:
+            print("Loading Object Detector...")
+            od.load_model()
+        except Exception as e:
+            print(f"Failed to load Object Detector due to: {e}")
+            return
+        while self.running:
+            try:
+                frame_data = self.frame_queue.get(timeout=2)
+                if frame_data is None:
+                    continue
+
+                frame, frame_counter = frame_data
+
+                print(f"Processing frame:  {frame_counter} for Object Detection")
+                # processes frame through object detector which outputs region of interest and confidence level
+                roi_frames, confidence, bbox = od.process_realtime(frame)
+                print(f"Frame processed successfully, confidence: {confidence:.2f}")
+                self.result_queue.put((frame, roi_frames, confidence, bbox, frame_counter))
+            except queue.Empty:
+                continue
+            except Exception as e:
+                print(f"Error in Object Detection Thread: {e}")
+
+
+
+
+
+#TODO: update comments and README later (not changed since new approach)
+class RealtimePipelineDemo:
+    """Main class for running the realtime pipeline. Orchestrates the capture, display and processing of frames.
+    This includes managing the created cpature and processing threads"""
+    def __init__(self, process_every_n_frames=60):
+        #Forces os's primary display (negates issues arising via ssh given commands)
+        os.environ['DISPLAY'] = ':0'
+        #TODO: Introduced a saved vid approach to test in fixed condition (personal tests can be done after)
+        #self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=640,height=480,framerate=15/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
+        self.video_source = "processing/video/cbs_30s.mp4"
+        self.process_every_n_frames = process_every_n_frames
+
+
+        self.detection_box = None
         self.detection_confidence = 0.0
-        #Stores the count of high confidence detections
-        self.detection_count = 0
-        #starttime used for calculating runtime
-        self.start_time = 0
+        self.detection_age = 0
 
         #Stores previous frame for use in motion detection
         self.previous_frame = None
         #Minimum level, percentage, above which motion detection function is triggered
-        self.detection_minimum = 20
+        self.detection_minimum = 15
 
-    #TODO: DEF REF
+        self.detection_count = 0
+        # starttime used for calculating runtime
+        self.start_time = 0
+
+
+        #Object detection thread
+        self.detection_queue = Queue(maxsize=2)
+        self.result_queue = Queue(maxsize=6)
+        self.detection_thread = ObjectDetectorThread(self.detection_queue, self.result_queue)
+
+
+
+    #TODO: refrence this whole block
     def detect_motion(self, frame):
         """Detects motion between consecutive frames by comparing the current frame to the previous """
         #converts the frame to greyscale
@@ -161,93 +213,106 @@ class RealtimePipeline:
             return False
 
 
-
-
     def run(self):
-        #Records starttime for runtime calculations
-        start_time = time.time()
-        #Loads Object detector model
-        od.load_model()
+        """Creates, configures and starts both threads befroe waiting for completion and cleanly shutting down"""
+        self.start_time = time.time()
+
+
         try:
             # Initialises camera capture utilising Gstreamer approach
-            capture = cv2.VideoCapture(self.gst_stream, cv2.CAP_GSTREAMER)
+            # capture = cv2.VideoCapture(self.gst_stream, cv2.CAP_GSTREAMER)
+            capture = cv2.VideoCapture(self.video_source)
             # Verifies camera opened succesfully
             if capture.isOpened() == False:
-                print("GST Stream failed to open.")
+                print("Video file failed to open.")
                 return
-            #Initialises variable to count total frames captured
-            frame_counter = 0
 
-            #Outputs summary preceding main capture & processing loop
-            print(f"\nCAMERA INITIALISED SUCCESSFULLY.")
-            print(f"PROCESSING EVERY {self.process_every_n_frames} FRAMES.")
+
+            print(f"Camera initialised successfully.")
+            print(f"Processing every {self.process_every_n_frames} frames.")
             print(f"Press CTRL+C to exit or q to exit.")
 
-            #Main loop, continues until quit
+
+            frame_counter = 0
+            fps_frame_counter = 0
+            fps_timer_start = cv2.getTickCount()
+
+
+            self.detection_thread.start()
+
+            # The main loop, continues until quit
             while True:
-                # Reads next frame from camera
+                # reads next frame from camera
                 ret, frame = capture.read()
-                #checks the capture frame has failed, skips this iteration of the loop if so
                 if not ret:
                     print("Failed to capture frame.")
                     continue
 
-                #clacualtes whether the current frame count is a multiple of predefined processing cadence (currently 30)
-                #If it is then checks for motion (based on function defined earlier)
-                frame_counter += 1
-                if frame_counter % self.process_every_n_frames == 0:
-                    self.motion_detected = self.detect_motion(frame)
 
-                    #TODO: Need to adjust this. Not good as is. Decrease n frames?
-                    #Checsk if motion deteceted, skips this iteration of the loop if no motion
-                    if not self.motion_detected:
+                fps_frame_counter += 1
+                if fps_frame_counter >= 30:
+                    fps_timer_end = cv2.getTickCount()
+                    elapsed_time = (fps_timer_end - fps_timer_start) / cv2.getTickFrequency()
+                    current_fps = fps_frame_counter / elapsed_time
+                    fps_timer_start = cv2.getTickCount()
+                    fps_frame_counter = 0
+
+                frame_counter += 1
+
+                if frame_counter % self.process_every_n_frames == 0:
+                    motion_detected = self.detect_motion(frame)
+                    if motion_detected:
+                        try:
+                            self.detection_queue.put_nowait((frame.copy(), frame_counter))
+                            print(f"Submitted frame: {frame_counter} fro detection")
+                        except Exception as e:
+                            print("Detection queue is full.")
+                    else:
                         print("Failed to detect motion.")
                         continue
-                    try:
-                        print(f"Processing frame:  {frame_counter} for Object Detection")
-                        # processes frame through object detector which outputs region of interest, confidence level and bounding box
-                        roi_frames, confidence, bbox = od.process_realtime(frame)
-                        # print(f"Frame processed successfully, confidence: {confidence:.2f}")
-                        if confidence > self.confidence_threshold:
-                            print(f"Confidence sufficiently high: {confidence:.2f}")
-                            try:
-                                #Increments the detection count before calling the save detection processes in another thread with all the detection data
-                                self.detection_count += 1
-                                saving_thread = SaveDetectionThread(frame.copy(), roi_frames, confidence, bbox, frame_counter)
-                                saving_thread.start()
-                            except Exception as e:
-                                print(f'ERROR while implementing SaveDetectionThread: {e}')
-                            ##Hard codes a wait into the pipeline in a, poor, attempt to minimise multiple counts of the same crustacean
-                            #TODO: THIS IS A VERY POOR APPROACH. ITERATE.....ALTHOUGH IT DOES SEEM TO HELP
-                            wait_time = 4
-                            print(f"WAITING: Waiting for {wait_time} seconds to prevent duplicates.\n")
-                            time.sleep(wait_time)
-                        else:
-                            print(f"Confidence below threshold\n")
 
-                        #Helps minimise memory usage by deleting variables and garbage cleaning
-                        del roi_frames, confidence, bbox
-                        gc.collect()
+
+                    try:
+                        while not self.result_queue.empty():
+                            frame, roi_frames, confidence, bbox, frame_counter = self.result_queue.get_nowait()
+                            print(f"Recieved detection result For frame:  {frame_counter}, Confidence: {confidence}")
+                            if confidence > 0.75:
+                                self.detection_age = 0
+                                self.detection_confidence = confidence
+                                self.detection_box = bbox
+                                print(f"Confidence sufficiently high: {confidence:.2f}")
+                                try:
+                                    self.detection_count += 1
+                                    #Calling the save detection processes in another thread with all the detection data
+                                    saving_thread = SaveDetectionThread(frame.copy(), roi_frames, confidence, bbox, frame_counter)
+                                    saving_thread.start()
+                                except Exception as e:
+                                    print(f'ERROR while implementing SaveDetectionThread: {e}')
+                                # clean memory
+                                del roi_frames, confidence, bbox
+                                gc.collect()
                     except Exception as e:
-                        print(f"OD PROCESSING ERROR. Caused by: {e}")
+                        print(f"Detection Queue empty. Further Details: {e}")
+
+
+
         except KeyboardInterrupt:
             print("Interrupted by Keyboard.")
         except Exception as e:
             print(f"CAPTRUE THREAD: Error has arisen due to: {e}")
         finally:
-            #Cleans up resources in all eventualities
-            print("Shutting down Resources...")
+            # Resouces minimisation after loops have completed
             capture.release()
+            cv2.destroyAllWindows()
             od.unload_model()
-            kd.unload_model()
-            del roi_frames, confidence, bbox
-            gc.collect()
+            if self.detection_thread.is_alive():
+                self.detection_thread.stop()
+                self.detection_thread.join()
+
 
             #Calulates the runtime and provides a summarisation of the overall run
-            runtime = time.time() - start_time
+            runtime = time.time() - self.start_time
             print("\n --- FINAL SUMMARY --- ")
-            print(f"    Total Frames Captured: {frame_counter}")
-            print(f"    Frames Processed for Detection: {frame_counter // self.process_every_n_frames}")
             print(f"    High confidence detections saved: {self.detection_count}")
             print(f"    Total Runtime: {runtime}")
 
@@ -257,7 +322,7 @@ class RealtimePipeline:
 if __name__ == "__main__":
     # An updated approach. Argparse approach means the number of runs can added to the cli command
     parser = argparse.ArgumentParser(description='Run a CV pipeline with camera capture and processing')
-    parser.add_argument("--frames_interval", type=int, default=30, help="Process every N frmaes (30 default)")
+    parser.add_argument("--frames_interval", type=int, default=60, help="Process every N frmaes (60 default)")
     args = parser.parse_args()
-    realtime_pipeline = RealtimePipeline(process_every_n_frames=args.frames_interval)
+    realtime_pipeline = RealtimePipelineDemo(process_every_n_frames=args.frames_interval)
     realtime_pipeline.run()
