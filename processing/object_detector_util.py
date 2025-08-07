@@ -52,7 +52,7 @@ def process(savepoint):
 
     #intialises arrays for storing cropped roi's and frames with bb's
     cropped_frames = []
-    annotated_frames = []
+    # annotated_frames = []
 
     #sets fixed output size, needed for input into keypoint detector
     fixed_box_size = np.asarray([539,561])
@@ -139,7 +139,7 @@ def process(savepoint):
         print(f"BBox: ({x1, y1}, {x2, y2})")
         print(f"Size: {x2-x1}x{y2-y1}")
         print(f"Confidence: {conf}")
-        print(f"Original image size")
+        print(f"Original image size {original_width}x{original_height}")
 
         #confidence check, outputs low confidence statement
         if conf < 0.25: #Lowered from 75 to 25
