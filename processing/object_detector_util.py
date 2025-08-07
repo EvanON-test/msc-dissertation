@@ -132,13 +132,13 @@ def process(savepoint):
         # detections count check, outputs no detections statement
         if len(detections[0]) == 0:
             print(f"No detections found for {image_name} within OD util!")
-            # continue
+            continue
 
         x1, y1, x2, y2, conf, class_index = detections[0][0]
         #confidence check, outputs low confidence statement
         if conf < 0.25: #Lowered from 75 to 25
             print(f"Low confidence detection: {conf} within OD util!")
-            # continue
+            continue
 
         # print(x1, y1, x2, y2)
         # x1, y1, x2, y2 = x1*scale, y1*scale, x2*scale, y2*scale
@@ -167,21 +167,23 @@ def process(savepoint):
         x2 = min(original_width, int(x2_final))
         y2 = min(original_height, int(y2_final))
 
+
+        # #TODO: this creates a better sized box - but not in correct location
+        fb0 = fixed_box_size[0]//2
+        fb1 = fixed_box_size[1]//2
+
+        start = (x1, y1)
+        # end = (y1+fb0, y2+fb1)
+        end = (x1+fb1, y2+fb0)
+        cv2.rectangle(modified_image, start, end, (0,255,0), 3)
+        cv2.imwrite(f"./processing/extracted_frames/OD_{image_name}", modified_image)
+
+
         #TODO: FIX BOUNDING HERE FIRST BEFORE MOVING BACK TO REALTIME - CHANGES HAVE HELPED BUT STILL WRONG
         #draws green bounding box on compy of original frame
         # annotated_image = true_scale_image.copy()
         # cv2.rectangle(annotated_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-        #TODO: this creates a better sized box
-        fb0 = fixed_box_size[0]//2
-        fb1 = fixed_box_size[1]//2
-
-
-        start = (x1, y1)
-        end = (x2, y2)
-        # end = (y1+fb0, y2+fb1)
-        cv2.rectangle(modified_image, start, end, (0,255,0), 3)
-        cv2.imwrite(f"./processing/extracted_frames/OD_{image_name}", modified_image)
 
         #Adds confidence label
         # confidence_label = f"Internal Confidence: {conf}"
