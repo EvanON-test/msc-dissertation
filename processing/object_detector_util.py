@@ -169,21 +169,29 @@ def process(savepoint):
 
         #TODO: FIX BOUNDING HERE FIRST BEFORE MOVING BACK TO REALTIME - CHANGES HAVE HELPED BUT STILL WRONG
         #draws green bounding box on compy of original frame
-        annotated_image = true_scale_image.copy()
-        cv2.rectangle(annotated_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        # annotated_image = true_scale_image.copy()
+        # cv2.rectangle(annotated_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+        fb0 = fixed_box_size[0]//2
+        fb1 = fixed_box_size[1]//2
+
+
+        start = (y1, y2)
+        end = (y1+fb0, y2+fb1)
+        cv2.rectangle(modified_image, start, end, (0,255,0), 3)
 
         #Adds confidence label
-        confidence_label = f"Internal Confidence: {conf}"
-        cv2.putText(annotated_image, confidence_label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-        #Add's class label if available
-        if hasattr(class_index, '__len__') or class_index is not None:
-            class_label = f"Internal Class index: {int(class_index)}"
-            cv2.putText(annotated_image, class_label, (x1, y1 - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-        #appends annotated image to annotated frames and also outputs it to the defined directory
-        annotated_frames.append(annotated_image)
-        cv2.imwrite(f"./processing/extracted_frames/OD_{image_name}", annotated_image)
+        # confidence_label = f"Internal Confidence: {conf}"
+        # cv2.putText(annotated_image, confidence_label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        #
+        # #Add's class label if available
+        # if hasattr(class_index, '__len__') or class_index is not None:
+        #     class_label = f"Internal Class index: {int(class_index)}"
+        #     cv2.putText(annotated_image, class_label, (x1, y1 - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        #
+        # #appends annotated image to annotated frames and also outputs it to the defined directory
+        # annotated_frames.append(annotated_image)
+        # cv2.imwrite(f"./processing/extracted_frames/OD_{image_name}", annotated_image)
 
         # fb0 = fixed_box_size[0]//2
         # fb1 = fixed_box_size[1]//2
