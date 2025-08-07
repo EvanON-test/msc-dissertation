@@ -134,23 +134,25 @@ def process(savepoint):
             print(f"No detections found for {image_name} within OD util!")
             continue
 
-        x1, y1, x2, y2, conf, class_index = detections[0][0]
+        x_centre, y_centre, width, height, conf, class_index = detections[0][0]
 
-        print(f"Detection results for {image_name}")
-        print(f"BBox: ({x1, y1}, {x2, y2})")
-        print(f"Size: {x2-x1}x{y2-y1}")
-        print(f"Confidence: {conf}")
+        print(f"\nDetection results for {image_name}")
+        print(f"Centre: {x_centre}, {y_centre}")
         print(f"Original image size {original_width}x{original_height}")
+        print(f'Size: {width}, height: {height}')
+        print(f"Confidence: {conf}")
+
 
         #confidence check, outputs low confidence statement
         if conf < 0.25: #Lowered from 75 to 25
             print(f"Low confidence detection: {conf} within OD util!")
             continue
 
-        x1 = x1 - x2 / 2
-        y1 = y1 - y2 / 2
-        x2 = x1 + x2 / 2
-        y2 = y1 + y2 / 2
+        x1 = x_centre - width / 2
+        y1 = y_centre - height / 2
+        x2 = x_centre + width / 2
+        y2 = y_centre + height / 2
+
 
         # # print(x1, y1, x2, y2)
         # # x1, y1, x2, y2 = x1*scale, y1*scale, x2*scale, y2*scale
@@ -182,12 +184,9 @@ def process(savepoint):
         actual_box_width = x2 - x1
         actual_box_height = y2 - y1
 
-        print("\nAFTER TRANSFORMATION")
-        print(f"\nDetection results for {image_name}")
+        print("AFTER TRANSFORMATION")
         print(f"BBox: ({x1, y1}, {x2, y2})")
-        print(f"Size (vals): {x2-x1}x{y2-y1}")
-        print(f"Size (vars): {actual_box_width}x{actual_box_height}")
-        print(f"Confidence: {conf}")
+        print(f"Size after nms: {actual_box_width}x{actual_box_height}")
         print(f"Original image size {original_width}x{original_height}")
 
         annotated_image = true_scale_image.copy()
@@ -204,6 +203,13 @@ def process(savepoint):
 
         annotated_frames.append(annotated_image)
         cv2.imwrite(f"./processing/extracted_frames/OD_{image_name}", annotated_image)
+
+
+
+        #TODO: CONTINUE FROM HERE TOMORROW
+
+
+
 
         # # #TODO: this creates a better sized box - but not in correct location
         # fb0 = fixed_box_size[0]//2
