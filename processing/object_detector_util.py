@@ -172,12 +172,14 @@ def process(savepoint):
         # annotated_image = true_scale_image.copy()
         # cv2.rectangle(annotated_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
+        #TODO: this creates a better sized box
         fb0 = fixed_box_size[0]//2
         fb1 = fixed_box_size[1]//2
 
 
-        start = (y1, y2)
-        end = (y1+fb0, y2+fb1)
+        start = (x1, y1)
+        end = (x2, y2)
+        # end = (y1+fb0, y2+fb1)
         cv2.rectangle(modified_image, start, end, (0,255,0), 3)
         cv2.imwrite(f"./processing/extracted_frames/OD_{image_name}", modified_image)
 
