@@ -52,7 +52,7 @@ def process(savepoint):
 
     #intialises arrays for storing cropped roi's and frames with bb's
     cropped_frames = []
-    # annotated_frames = []
+    annotated_frames = []
 
     #sets fixed output size, needed for input into keypoint detector
     fixed_box_size = np.asarray([539,561])
@@ -135,6 +135,7 @@ def process(savepoint):
             continue
 
         x1, y1, x2, y2, conf, class_index = detections[0][0]
+
         print(f"Detection results for {image_name}")
         print(f"BBox: ({x1, y1}, {x2, y2})")
         print(f"Size: {x2-x1}x{y2-y1}")
@@ -146,11 +147,16 @@ def process(savepoint):
             print(f"Low confidence detection: {conf} within OD util!")
             continue
 
-        # print(x1, y1, x2, y2)
-        # x1, y1, x2, y2 = x1*scale, y1*scale, x2*scale, y2*scale
-        #converts to integers for pixel coords
-        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+        x1 = x1 - x2 / 2
+        y1 = y1 - y2 / 2
+        x2 = x1 + x2 / 2
+        y2 = y1 + y2 / 2
 
+        # # print(x1, y1, x2, y2)
+        # # x1, y1, x2, y2 = x1*scale, y1*scale, x2*scale, y2*scale
+        # #converts to integers for pixel coords
+        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+        #
         # scale back to original size
         scale_factor = 1280 / 640
         x1_padded = x1 * scale_factor
@@ -173,16 +179,41 @@ def process(savepoint):
         x2 = min(original_width, int(x2_final))
         y2 = min(original_height, int(y2_final))
 
+        actual_box_width = x2 - x1
+        actual_box_height = y2 - y1
 
-        # #TODO: this creates a better sized box - but not in correct location
-        fb0 = fixed_box_size[0]//2
-        fb1 = fixed_box_size[1]//2
+        print("\nAFTER TRANSFORMATION")
+        print(f"\nDetection results for {image_name}")
+        print(f"BBox: ({x1, y1}, {x2, y2})")
+        print(f"Size (vals): {x2-x1}x{y2-y1}")
+        print(f"Size (vars): {actual_box_width}x{actual_box_height}")
+        print(f"Confidence: {conf}")
+        print(f"Original image size {original_width}x{original_height}")
 
-        start = (x1, y1)
-        # end = (y1+fb0, y2+fb1)
-        end = (x2+fb1, y2+fb0)
-        cv2.rectangle(modified_image, start, end, (0,255,0), 3)
-        cv2.imwrite(f"./processing/extracted_frames/OD_{image_name}", modified_image)
+        annotated_image = true_scale_image.copy()
+        cv2.rectangle(annotated_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+        # Adds confidence label
+        confidence_label = f"Internal Confidence: {conf}"
+        cv2.putText(annotated_image, confidence_label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+        #Add's class label if available
+        if class_index is not None:
+            class_label = f"Internal Class index: {int(class_index)}"
+            cv2.putText(annotated_image, class_label, (x1, y1 - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+        annotated_frames.append(annotated_image)
+        cv2.imwrite(f"./processing/extracted_frames/OD_{image_name}", annotated_image)
+
+        # # #TODO: this creates a better sized box - but not in correct location
+        # fb0 = fixed_box_size[0]//2
+        # fb1 = fixed_box_size[1]//2
+        #
+        # start = (x1, y1)
+        # # end = (y1+fb0, y2+fb1)
+        # end = (x2+fb1, y2+fb0)
+        # cv2.rectangle(modified_image, start, end, (0,255,0), 3)
+        # cv2.imwrite(f"./processing/extracted_frames/OD_{image_name}", modified_image)
 
 
         #TODO: FIX BOUNDING HERE FIRST BEFORE MOVING BACK TO REALTIME - CHANGES HAVE HELPED BUT STILL WRONG
