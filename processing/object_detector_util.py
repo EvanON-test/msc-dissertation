@@ -179,6 +179,7 @@ def process(savepoint):
         start = (y1, y2)
         end = (y1+fb0, y2+fb1)
         cv2.rectangle(modified_image, start, end, (0,255,0), 3)
+        cv2.imwrite(f"./processing/extracted_frames/OD_{image_name}", modified_image)
 
         #Adds confidence label
         # confidence_label = f"Internal Confidence: {conf}"
