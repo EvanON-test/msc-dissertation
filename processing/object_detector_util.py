@@ -135,6 +135,12 @@ def process(savepoint):
             continue
 
         x1, y1, x2, y2, conf, class_index = detections[0][0]
+        print(f"Detection results for {image_name}")
+        print(f"BBox: ({x1, y1}, {x2, y2})")
+        print(f"Size: {x2-x1}x{y2-y1}")
+        print(f"Confidence: {conf}")
+        print(f"Original image size")
+
         #confidence check, outputs low confidence statement
         if conf < 0.25: #Lowered from 75 to 25
             print(f"Low confidence detection: {conf} within OD util!")
@@ -174,7 +180,7 @@ def process(savepoint):
 
         start = (x1, y1)
         # end = (y1+fb0, y2+fb1)
-        end = (x1+fb1, y2+fb0)
+        end = (x2+fb1, y2+fb0)
         cv2.rectangle(modified_image, start, end, (0,255,0), 3)
         cv2.imwrite(f"./processing/extracted_frames/OD_{image_name}", modified_image)
 
