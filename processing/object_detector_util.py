@@ -183,7 +183,7 @@ def process(savepoint):
 
         #appends annotated image to annotated frames and also outputs it to the defined directory
         annotated_frames.append(annotated_image)
-        cv2.imwrite(f"./processing/extracted_frames/{image_name}_OD", annotated_image)
+        cv2.imwrite(f"./processing/extracted_frames/OD_{image_name}", annotated_image)
 
         # fb0 = fixed_box_size[0]//2
         # fb1 = fixed_box_size[1]//2
