@@ -156,7 +156,8 @@ class RealtimePipeline:
         #Forces os's primary display (negates issues arising via ssh given commands)
         os.environ['DISPLAY'] = ':0'
         #TODO: Introduced a saved vid approach to test in fixed condition (personal tests can be done after)
-        #self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=640,height=480,framerate=15/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
+        #TODO: RE-TEST WITH THE NEW UPDATED RESOLUTION
+        #self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720,framerate=15/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
         self.video_source = "processing/video/cbs_30s.mp4"
         self.process_every_n_frames = process_every_n_frames
 

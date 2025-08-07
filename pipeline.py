@@ -1,6 +1,3 @@
-#TODO: Update ReadME on runs and detail how it is built for the current singular 30s file (would need to adjust approach if longer/more files)
-
-
 import numpy as np
 import shutil
 import time
@@ -16,20 +13,25 @@ import processing.keypoint_detector_util as kd
 
 COMPLETED_FILES_LOG = "./CompletedFiles.txt"
 
-#Updated this into a class
+#Updated into a class based approach
 class Pipeline:
     @staticmethod
     def run(data_path="processing/video", monitor=None, runs=1):
+        """
+        Main function to run the pipeline. Allows modifications of the piepline including multiple runs,
+         for benchmarking, aswell as monitoring and normal usage modes
+        """
 
         try:
             with open(COMPLETED_FILES_LOG, 'r') as cfl:
                 completed_files = [line.strip('\n') for line in cfl.readlines()]
         except FileNotFoundError:
-            f = open(COMPLETED_FILES_LOG, "x")
+            with open(COMPLETED_FILES_LOG, "x"):
+                pass
             completed_files = []
 
-        """Implemented an approach to loop over the processing function based on the number of 'runs' input. Better data creation"""
-        #TODO: this is only useful while there is 1 file in a benchmarking scenario - will need to adjust/remove at a later time
+        # TODO: this is only works properly while there is 1 file - need to adjust/remove at a later time
+        #A simple loop approach to process the file/s (singular currently) relevant to the user inputted run value. FOR BENCHMARKING
         if runs > 1:
             run_count = 0
             while run_count < runs:
@@ -40,15 +42,17 @@ class Pipeline:
                     run_count += 1
             print(f"\nFinished processing for a total of: {runs}\n")
         else:
+            #A simple loop approach that processes each file in the directory 1 time, that isn't already in completed files. A record is then added to the completed files.
             for filename in os.listdir(data_path):
                 if filename not in completed_files and '.mp4' in filename:
                     print(f"Processing {filename}")
-                    #Checks if monitor instance, runs appropriate option
+                    #Checks if monitor instance present, runs appropriate option
                     if monitor:
                         Pipeline.process(data_path + '/' + filename, monitor)
                     else:
                         Pipeline.process(data_path+'/'+filename)
                     completed_files.append(filename)
+                    #Logs the filename in the completed_files.txt file
                     with open(COMPLETED_FILES_LOG, 'a') as cfl:
                         cfl.write(filename+"\n")
                     print(f"Finished processing {filename}")
@@ -57,47 +61,56 @@ class Pipeline:
 
     @staticmethod
     def process(video_path, monitor=None):
+        """This is the core processing Pipeline"""
 
+        #start timer for calculating final runtime
         start_time = time.time()
 
+        ##BINARY CLASSIFICATION
         bc_start_time = time.time()
-
         print("\nLocating contigs...")
         #updates current stage value (if monitor instance running)
         if monitor:
             monitor.current_stage = "Binary Classifier"
+        #BC processes the video and predictions are assigned to the signal
         signal = bc.process(cv2.VideoCapture(video_path))
-
         bc_time = time.time() - bc_start_time
 
-        fs_start_time = time.time()
 
+        ##FRAME SELECTION
+        fs_start_time = time.time()
         print("\nExtracting best frames...")
+        #updates current stage value (if monitor instance running)
         if monitor:
             monitor.current_stage = "Frame Selector"
+        #FS processes the predictions and extracts the best frames
+        #best_frames[0] is top, best_frames[1] is bottom,
         extracted_frame_idxs = fs.process(
             signal, cv2.VideoCapture(video_path))
         del signal
-
         fs_time = time.time() - fs_start_time
 
+        ##OBJECT DETECTOR
         od_start_time = time.time()
+        # updates current stage value (if monitor instance running)
         if monitor:
             monitor.current_stage = "Object Detector"
-        # make sure its empty
+        #make sure its empty (so that only frames from the current run are saved)
         savepoint = "./processing/extracted_frames/"
         shutil.rmtree(savepoint)
         os.mkdir(savepoint)
 
         video = cv2.VideoCapture(video_path)
 
+        #prinnts total No. of sub arrays and number frames in both the top and bottom arrays
         print("EXTRACTED: ")
         print(len(extracted_frame_idxs))
         print(len(extracted_frame_idxs[0]))
         print(len(extracted_frame_idxs[1]))
 
-        # take indices of top frames only
+        # take indices of top frames only. Extracts and saves the selected frames
         for i in range(len(extracted_frame_idxs[0])):
+            #jumps to specific frame in video before saving as PNG
             video.set(cv2.CAP_PROP_POS_FRAMES, extracted_frame_idxs[0][i])
             success, image = video.read()
             # extracted_top_frames[i] = full_frames[extracted_frame_idxs[1][i]]
@@ -114,6 +127,7 @@ class Pipeline:
 
         od_time = time.time() - od_start_time
 
+        ##KYEPOINT DETECTOR
         kd_start_time = time.time()
 
         print("\nDetecting keypoints...")

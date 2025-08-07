@@ -11,8 +11,8 @@ preloaded_interpreter = None
 preloaded_input_details = None
 preloaded_output_details = None
 
-#TODO: implement any useful changes from realtime version into process(avepoint version)
-#TODO: comment your stuff, even the simple stuff
+#TODO: implement any useful processes from savepoint version to demo version
+#TODO: comment all relevant stuff, even the simple stuff
 #loads model using global variables
 def load_model():
     global preloaded_interpreter
@@ -48,12 +48,15 @@ def unload_model():
 
 
 def process(savepoint):
+    """Main function for object detections"""
 
+    #intialises arrays for storing cropped roi's and frames with bb's
     cropped_frames = []
     annotated_frames = []
 
+    #sets fixed output size, needed for input into keypoint detector
     fixed_box_size = np.asarray([539,561])
-    
+    # Loads tensorflowlite model
     interpreter = tflite.Interpreter(
         model_path="./processing/object_detector/best-expanded.tflite")
     # interpreter.resize_tensor_input(
@@ -65,13 +68,15 @@ def process(savepoint):
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
 
+    #processes each extracted frame
     for image_name in os.listdir(savepoint):
 
+        #loads original scale image
         true_scale_image = cv2.imread(savepoint+image_name)
 
         # input_data = cv2.cvtColor(input_data, cv2.COLOR_BGR2GRAY)
 
-        # pad to 1280,1280
+        # Creates black canvas, pads to 1280,1280
         fill_color = (0, 0, 0, 255)
         x, y, c = true_scale_image.shape
         x_target, y_target = 1280, 1280
@@ -81,12 +86,12 @@ def process(savepoint):
         # new_im.paste(Image.fromarray(np.uint8(true_scale_image)), (0, pos_y))
         # expanded_image = np.array(new_im)[...,:3]
 
-        #TODO: test this
+        #Calculates padding to centre image in sqaure canvas
         original_height, original_width = true_scale_image.shape[:2]
         pos_x = int((1280 - original_width) / 2)
         pos_y = int((1280 - original_height) / 2)
 
-        # pastes into centre of the square canvas
+        # pastes original image into centre of the square canvas
         new_im.paste(Image.fromarray(np.uint8(true_scale_image)), (pos_x, pos_y))
         expanded_image = np.array(new_im)[..., :3]
 
@@ -95,9 +100,10 @@ def process(savepoint):
         #     modified_image = rescale_image_gpu(expanded_image)
         #     print("GPU used")
         # except Exception as e :
-        # rescale to 640, 640
-        modified_image = cv2.resize(expanded_image, (640,640))
 
+        # rescales image to 640, 640 (for model input)
+        modified_image = cv2.resize(expanded_image, (640,640))
+        #reshapes for model input
         input_data = np.reshape(modified_image, (1, 640, 640, 3))
 
         max_size = 1920
@@ -105,11 +111,13 @@ def process(savepoint):
         b, h, w, ch = input_data.shape
         scale = max_size / ns / max(h, w)
 
+        #runs the model inference
         interpreter.set_tensor(
             input_details[0]['index'], 
             input_data.astype(np.float32))
         interpreter.invoke()
 
+        #collects all output from model into array 'y'
         y = []
         for output in output_details:
             y.append(interpreter.get_tensor(output['index']))
@@ -118,35 +126,33 @@ def process(savepoint):
 
 
         # x1, y1, x2, y2, conf, class_index = non_max_suppression(y[0])[0][0]
-        #TODO: TEST NEW APPROACH
+        #Applies nms
         detections = non_max_suppression(y[0])
+
+        # detections count check, outputs no detections statement
         if len(detections[0]) == 0:
-            print(f"No detections found for {image_name}!")
-            continue
+            print(f"No detections found for {image_name} within OD util!")
+            # continue
 
         x1, y1, x2, y2, conf, class_index = detections[0][0]
-
-        if conf < 0.75:
-            print(f"Low confidence detection: {conf}")
-            continue
-
-
-
+        #confidence check, outputs low confidence statement
+        if conf < 0.25: #Lowered from 75 to 25
+            print(f"Low confidence detection: {conf} within OD util!")
+            # continue
 
         # print(x1, y1, x2, y2)
         # x1, y1, x2, y2 = x1*scale, y1*scale, x2*scale, y2*scale
+        #converts to integers for pixel coords
         x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
-        #TODO: tested this
-
-        # scale back to original
+        # scale back to original size
         scale_factor = 1280 / 640
         x1_padded = x1 * scale_factor
         y1_padded = y1 * scale_factor
         x2_padded = x2 * scale_factor
         y2_padded = y2 * scale_factor
 
-        # Removes padding offset
+        # Removes padding offset to get original coordinates
         offset_x = (1280 - original_width) / 2
         offset_y = (1280 - original_height) / 2
 
@@ -155,55 +161,59 @@ def process(savepoint):
         x2_final = x2_padded - offset_x
         y2_final = y2_padded - offset_y
 
+        #sets to image boundaries
         x1 = max(0, int(x1_final))
         y1 = max(0, int(y1_final))
         x2 = min(original_width, int(x2_final))
         y2 = min(original_height, int(y2_final))
 
-        # TODO: tested this
-
         #TODO: FIX BOUNDING HERE FIRST BEFORE MOVING BACK TO REALTIME - CHANGES HAVE HELPED BUT STILL WRONG
+        #draws green bounding box on compy of original frame
         annotated_image = true_scale_image.copy()
         cv2.rectangle(annotated_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-        confidence_label = f"Confidence: {conf}"
+        #Adds confidence label
+        confidence_label = f"Internal Confidence: {conf}"
         cv2.putText(annotated_image, confidence_label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
+        #Add's class label if available
         if hasattr(class_index, '__len__') or class_index is not None:
-            class_label = f"Class index: {int(class_index)}"
+            class_label = f"Internal Class index: {int(class_index)}"
             cv2.putText(annotated_image, class_label, (x1, y1 - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-
-
+        #appends annotated image to annotated frames and also outputs it to the defined directory
         annotated_frames.append(annotated_image)
-
-        cv2.imwrite(f"./processing/extracted_frames/{image_name}", annotated_image)
+        cv2.imwrite(f"./processing/extracted_frames/{image_name}_OD", annotated_image)
 
         # fb0 = fixed_box_size[0]//2
         # fb1 = fixed_box_size[1]//2
 
-        # start = (y1, y2)
-        # end = (y1+fb0, y2+fb1)
-        # plot = cv2.rectangle(modified_image, start, end, (0,255,0), 3)
+        #TODO: TRY THIS IF IT FAILS
+        #start = (y1, y2)
+        #end = (y1+fb0, y2+fb1)
+        #plot = cv2.rectangle(modified_image, start, end, (0,255,0), 3)
     
+        #converts to grayscale before cropping
         gray_true_scale_image = cv2.cvtColor(true_scale_image, cv2.COLOR_BGR2GRAY)
 
+        #creates fixed size crop array
         crop = np.zeros((fixed_box_size[0], fixed_box_size[1]))
-        for i in range(crop.shape[0]):
-            for j in range(crop.shape[1]):
-                ii, jj = y1+i, y2+j
-                if (ii < gray_true_scale_image.shape[0] and
-                    jj < gray_true_scale_image.shape[1]):
-                    crop[i][j] = gray_true_scale_image[ii][jj]
 
-        #TODO: TEST
-        # crop = np.zeros((fixed_box_size[0], fixed_box_size[1]))
         # for i in range(crop.shape[0]):
         #     for j in range(crop.shape[1]):
-        #         ii, jj = y1+i, x1+j
+        #         ii, jj = y1+i, y2+j
         #         if (ii < gray_true_scale_image.shape[0] and
         #             jj < gray_true_scale_image.shape[1]):
         #             crop[i][j] = gray_true_scale_image[ii][jj]
+
+        #TODO: TEST
+        # crop = np.zeros((fixed_box_size[0], fixed_box_size[1]))
+        for i in range(crop.shape[0]):
+            for j in range(crop.shape[1]):
+                ii, jj = y1+i, x1+j
+                if (ii < gray_true_scale_image.shape[0] and
+                    jj < gray_true_scale_image.shape[1]):
+                    crop[i][j] = gray_true_scale_image[ii][jj]
 
         cropped_frames.append(crop)
 
