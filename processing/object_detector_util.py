@@ -343,4 +343,4 @@ def process_realtime(frame):
 
     cropped_frames.append(crop)
 
-    return np.array(cropped_frames), conf, (x1, y1, x2, y2), class_index
+    return np.array(cropped_frames), conf, (x1, y1, x2, y2)

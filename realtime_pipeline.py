@@ -25,14 +25,13 @@ import processing.keypoint_detector_util as kd
 class SaveDetectionThread(Thread):
     """A separate thread that further processes and saves information regarding the detections. Currently further processes the frame to get the keypoint data
     before saving it as a csv file as well as saving the frame as well as the frame with the bounded box on"""
-    def __init__(self, frame, roi_frames, confidence, bbox, class_index, frame_counter):
+    def __init__(self, frame, roi_frames, confidence, bbox, frame_counter):
         """Initialises the thread class as well as the detection data from the realtimepipeline that is needed for the further processing """
         super().__init__()
         self.frame = frame
         self.roi_frames = roi_frames
         self.confidence = confidence
         self.bbox = bbox
-        self.class_index = class_index
         self.frame_counter = frame_counter
         self.output_directory = "./realtime_frames/"
         os.makedirs(self.output_directory, exist_ok=True)
@@ -66,11 +65,6 @@ class SaveDetectionThread(Thread):
             #Adds the info alongside the bounding box
             detection_text = f"Detection: {self.confidence:.2f}"
             cv2.putText(frame_with_bbox, detection_text, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-            #Add's class label if available
-            if self.class_index is not None:
-                class_label = f"Internal Class index: {int(self.class_index)}"
-                cv2.putText(frame_with_bbox, class_label, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
             # generates the unique filename for original image and saves it to the unique directory
             image_filename = f"{timestamp}_screenshot.jpg"
@@ -138,7 +132,7 @@ class ObjectDetectorThread(Thread):
                 # processes frame through object detector which outputs region of interest and confidence level
                 roi_frames, confidence, bbox, class_index = od.process_realtime(frame)
                 print(f"Frame processed successfully, confidence: {confidence:.2f}")
-                self.result_queue.put((frame, roi_frames, confidence, bbox, class_index, frame_counter))
+                self.result_queue.put((frame, roi_frames, confidence, bbox, frame_counter))
             except Empty:
                 continue
             except Exception as e:
