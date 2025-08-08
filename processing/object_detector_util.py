@@ -129,8 +129,9 @@ def process(savepoint):
         for output in output_details:
             y.append(interpreter.get_tensor(output['index']))
         y = [x if isinstance(x, np.ndarray) else x.numpy() for x in y]
+        print(f"pre-scale coords min/max: {y[0][..., :4].min():.4f}/ {y[0][..., :4].max():.4f}")
         y[0][..., :4] *= [w, h, w, h]  # xywh normalized to pixels
-
+        print(f"post-scale coords min/max: {y[0][..., :4].min():.4f}/ {y[0][..., :4].max():.4f}")
         print(f"\ny[0] shape: {y[0].shape}")
 
 
@@ -154,6 +155,9 @@ def process(savepoint):
         # x_centre, y_centre, width, height, conf, class_index = detections[0][0]
 
         x1, y1, x2, y2, conf, class_index = detections[0][0]
+        dbg_640 = modified_image.copy()
+        cv2.rectangle(dbg_640, (int(x1), int(y1)), (int(y1), int(y2)), (255, 0, 0), 2)
+        cv2.imwrite(f"./processing/extracted_frames/OD_MODELSPACE{image_name}", dbg_640)
 
 
         print(f"640 space xyxy: ({x1:.2f}, {y1:.2f}) - ({x2:.2f}, {y2:.2f}), size {x2-x1:.2f}x{y2-y1:.2f}, conf {conf:.2f}, cls {int(class_index) if class_index is not None else 'NA'}")
