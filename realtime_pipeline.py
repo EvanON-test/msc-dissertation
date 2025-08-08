@@ -142,7 +142,7 @@ class ObjectDetectorThread(Thread):
             except Empty:
                 continue
             except Exception as e:
-                print(f"Error in Object Detectior Thread: {e}")
+                print(f"Error in ObjectDetectorThread: {e}")
 
 
 

@@ -269,20 +269,20 @@ def process_realtime(frame):
     # Applies nms
     detections = non_max_suppression(y[0])
 
-    # detections count check, outputs no detections statement
-    if len(detections[0]) == 0:
-        print(f"No detections found for {true_scale_image} within OD util!")
-        return
+    # # detections count check, outputs no detections statement
+    # if len(detections[0]) == 0:
+    #     print(f"No detections found for {true_scale_image} within OD util!")
+    #     return
 
     # Wrong. nms output was xyxy
     # x_centre, y_centre, width, height, conf, class_index = detections[0][0]
 
     x1, y1, x2, y2, conf, class_index = detections[0][0]
 
-    # confidence check, outputs low confidence statement
-    if conf < 0.25:  # Lowered from 75 to 25
-        print(f"Low confidence detection: {conf} within OD util!")
-        return
+    # # confidence check, outputs low confidence statement
+    # if conf < 0.25:  # Lowered from 75 to 25
+    #     print(f"Low confidence detection: {conf} within OD util!")
+    #     return
 
     #Rejects small detections - poor approach to reduce issues regarding small object detections
     #TODO: Remove/Improve this later
