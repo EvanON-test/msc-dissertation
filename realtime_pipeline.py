@@ -131,7 +131,7 @@ class ObjectDetectorThread(Thread):
                 print(f"Processing frame:  {frame_counter} for Object Detection")
                 # processes frame through object detector which outputs region of interest and confidence level
                 roi_frames, confidence, bbox, class_index = od.process_realtime(frame)
-                print(f"Frame processed successfully, confidence: {confidence:.2f}")
+                # print(f"Frame processed successfully, confidence: {confidence:.2f}")
                 self.result_queue.put((frame, roi_frames, confidence, bbox, frame_counter))
             except queue.Empty():
                 continue
