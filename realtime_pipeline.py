@@ -157,8 +157,8 @@ class RealtimePipeline:
         os.environ['DISPLAY'] = ':0'
         #TODO: Introduced a saved vid approach to test in fixed condition (personal tests can be done after)
         #TODO: RE-TEST WITH THE NEW UPDATED RESOLUTION
-        #self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720,framerate=15/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
-        self.video_source = "processing/video/cbs_30s.mp4"
+        self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720,framerate=15/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
+        # self.video_source = "processing/video/cbs_30s.mp4"
         self.process_every_n_frames = process_every_n_frames
 
 
@@ -221,8 +221,8 @@ class RealtimePipeline:
 
         try:
             # Initialises camera capture utilising Gstreamer approach
-            # capture = cv2.VideoCapture(self.gst_stream, cv2.CAP_GSTREAMER)
-            capture = cv2.VideoCapture(self.video_source)
+            capture = cv2.VideoCapture(self.gst_stream, cv2.CAP_GSTREAMER)
+            # capture = cv2.VideoCapture(self.video_source)
             # Verifies camera opened succesfully
             if capture.isOpened() == False:
                 print("Video file failed to open.")
