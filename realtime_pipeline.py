@@ -133,7 +133,7 @@ class ObjectDetectorThread(Thread):
                 roi_frames, confidence, bbox, class_index = od.process_realtime(frame)
                 print(f"Frame processed successfully, confidence: {confidence:.2f}")
                 self.result_queue.put((frame, roi_frames, confidence, bbox, frame_counter))
-            except Empty:
+            except queue.Empty():
                 continue
             except Exception as e:
                 print(f"Error in ObjectDetectorThread: {e}")
