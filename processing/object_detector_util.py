@@ -81,15 +81,15 @@ def process(savepoint):
         x, y, c = true_scale_image.shape
         x_target, y_target = 1280, 1280
         new_im = Image.new('RGBA', (x_target, y_target), fill_color)
-        # # pos_x = (int((x_target - x) / 2))
-        # pos_y = (int((y_target - x) / 2))
+        pos_x = (int((x_target - x) / 2))
+        pos_y = (int((y_target - x) / 2))
         # new_im.paste(Image.fromarray(np.uint8(true_scale_image)), (0, pos_y))
         # expanded_image = np.array(new_im)[...,:3]
 
         #Calculates padding to centre image in sqaure canvas
         original_height, original_width = true_scale_image.shape[:2]
-        pos_x = int((1280 - original_width) / 2)
-        pos_y = int((1280 - original_height) / 2)
+        # pos_x = int((1280 - original_width) / 2)
+        # pos_y = int((1280 - original_height) / 2)
 
         # pastes original image into centre of the square canvas
         new_im.paste(Image.fromarray(np.uint8(true_scale_image)), (pos_x, pos_y))
@@ -176,16 +176,17 @@ def process(savepoint):
         y2 = min(original_height, int(y2_final))
 
         annotated_image = true_scale_image.copy()
-        cv2.rectangle(annotated_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        # #TODO: BB's are not correct although they are not a million miles away. Cannot overcome the issue and think the issue might be in nms
+        # cv2.rectangle(annotated_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
         # Adds confidence label
         confidence_label = f"Internal Confidence: {conf}"
-        cv2.putText(annotated_image, confidence_label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        cv2.putText(annotated_image, confidence_label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         #Add's class label if available
         if class_index is not None:
             class_label = f"Internal Class index: {int(class_index)}"
-            cv2.putText(annotated_image, class_label, (x1, y1 - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            cv2.putText(annotated_image, class_label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         annotated_frames.append(annotated_image)
         cv2.imwrite(f"./processing/extracted_frames/OD_{image_name}", annotated_image)
