@@ -11,7 +11,7 @@ import gc
 import csv
 import platform
 import psutil
-from queue import Queue
+from queue import Queue, Empty
 
 
 
@@ -139,10 +139,10 @@ class ObjectDetectorThread(Thread):
                 roi_frames, confidence, bbox, class_index = od.process_realtime(frame)
                 print(f"Frame processed successfully, confidence: {confidence:.2f}")
                 self.result_queue.put((frame, roi_frames, confidence, bbox, class_index, frame_counter))
-            except queue.Empty:
+            except Empty:
                 continue
             except Exception as e:
-                print(f"Error in Object Detection Thread: {e}")
+                print(f"Error in Object Detectior Thread: {e}")
 
 
 
