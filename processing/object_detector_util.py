@@ -181,12 +181,12 @@ def process(savepoint):
 
         # Adds confidence label
         confidence_label = f"Internal Confidence: {conf}"
-        cv2.putText(annotated_image, confidence_label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        cv2.putText(annotated_image, confidence_label, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         #Add's class label if available
         if class_index is not None:
             class_label = f"Internal Class index: {int(class_index)}"
-            cv2.putText(annotated_image, class_label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            cv2.putText(annotated_image, class_label, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         annotated_frames.append(annotated_image)
         cv2.imwrite(f"./processing/extracted_frames/OD_{image_name}", annotated_image)
