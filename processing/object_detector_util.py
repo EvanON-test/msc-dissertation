@@ -95,10 +95,6 @@ def process(savepoint):
         new_im.paste(Image.fromarray(np.uint8(true_scale_image)), (pos_x, pos_y))
         expanded_image = np.array(new_im)[..., :3]
 
-        print(f"DEBUGGING FOR: {image_name}")
-        print(f"Original HxW: {original_height} x {original_width}")
-        print(f"Padding Pos_x, pos_y: {pos_x}, {pos_y}")
-        print(f"Expanded shape: {expanded_image.shape}")
 
         # # GPU - rescale to 640, 640
         # try:
@@ -116,8 +112,6 @@ def process(savepoint):
         b, h, w, ch = input_data.shape
         scale = max_size / ns / max(h, w)
 
-        print(f"Resized: {modified_image.shape}, Input shape: {input_data.shape} (h={h}, w={w})")
-
         #runs the model inference
         interpreter.set_tensor(
             input_details[0]['index'], 
@@ -129,21 +123,11 @@ def process(savepoint):
         for output in output_details:
             y.append(interpreter.get_tensor(output['index']))
         y = [x if isinstance(x, np.ndarray) else x.numpy() for x in y]
-        print(f"pre-scale coords min/max: {y[0][..., :4].min():.4f}/ {y[0][..., :4].max():.4f}")
         y[0][..., :4] *= [w, h, w, h]  # xywh normalized to pixels
-        print(f"post-scale coords min/max: {y[0][..., :4].min():.4f}/ {y[0][..., :4].max():.4f}")
-        print(f"\ny[0] shape: {y[0].shape}")
-
-
 
         # x1, y1, x2, y2, conf, class_index = non_max_suppression(y[0])[0][0]
         #Applies nms
         detections = non_max_suppression(y[0])
-
-        print(f"nms batches {len(detections)}, dets in batch {len(detections[0]) if len(detections)>0 else 0}")
-        if len(detections[0]) > 0:
-            det = detections[0][0]
-            print(f"DETECTIONS RAW: {det[:6].tolist()}")
 
 
         # detections count check, outputs no detections statement
@@ -157,27 +141,11 @@ def process(savepoint):
         x1, y1, x2, y2, conf, class_index = detections[0][0]
         dbg_640 = modified_image.copy()
         cv2.rectangle(dbg_640, (int(x1), int(y1)), (int(y1), int(y2)), (255, 0, 0), 2)
-        cv2.imwrite(f"./processing/extracted_frames/OD_MODELSPACE{image_name}", dbg_640)
-
-
-        print(f"640 space xyxy: ({x1:.2f}, {y1:.2f}) - ({x2:.2f}, {y2:.2f}), size {x2-x1:.2f}x{y2-y1:.2f}, conf {conf:.2f}, cls {int(class_index) if class_index is not None else 'NA'}")
-
-        # print(f"\nDEBUGGING OUTPUTS FOR: {image_name}")
-        # print(f"BBOX: ({x1}, {y1}), ({x2}, {y2})")
-        # print(f"Original image size {original_width}x{original_height}")
-        # print(f'Size: {width}, height: {height}')
-        # print(f"Confidence: {conf}")
-
 
         #confidence check, outputs low confidence statement
         if conf < 0.25: #Lowered from 75 to 25
             print(f"Low confidence detection: {conf} within OD util!")
             continue
-        #As output was as origianlly thought xyxy it doesnt need this
-        # x1 = x_centre - width / 2
-        # y1 = y_centre - height / 2
-        # x2 = x_centre + width / 2
-        # y2 = y_centre + height / 2
 
 
         # # print(x1, y1, x2, y2)
@@ -196,32 +164,16 @@ def process(savepoint):
         offset_x = (1280 - original_width) / 2
         offset_y = (1280 - original_height) / 2
 
-        print(f"scale factor: {scale_factor}, offsets: {offset_x:.2f}, {offset_y:.2f}")
-        print(f"padded(1280) xyxy: ({x1_padded:.2f}, {y1_padded:.2f}) - ({x2_padded:.2f}, {y2_padded:.2f})")
-        print(f"offset_x: {offset_x:.2f}, offset_y: {offset_y:.2f}")
-
         x1_final = x1_padded - offset_x
         y1_final = y1_padded - offset_y
         x2_final = x2_padded - offset_x
         y2_final = y2_padded - offset_y
-
-        print(f"unpadded to original xyxy: ({x1_final:.2f}, {y1_final:.2f}) - ({x2_final:.2f}, {y2_final:.2f})")
 
         #sets to image boundaries
         x1 = max(0, int(x1_final))
         y1 = max(0, int(y1_final))
         x2 = min(original_width, int(x2_final))
         y2 = min(original_height, int(y2_final))
-
-        actual_box_width = x2 - x1
-        actual_box_height = y2 - y1
-
-        print(f"Final int bbox: ({x1}, {y1}) - ({x2}, {y2}) on {original_width} x {original_height}, size {x2-x1}x{y2-y1}")
-        if x1>=x2 or y1 >= y2:
-            print("WARNING: invalid/zero area bbox after setting to image boundaries")
-        # print(f"BBox: ({x1, y1}, {x2, y2})")
-        # print(f"Size after nms: {actual_box_width}x{actual_box_height}")
-        # print(f"Original image size {original_width}x{original_height}")
 
         annotated_image = true_scale_image.copy()
         cv2.rectangle(annotated_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
@@ -237,67 +189,13 @@ def process(savepoint):
 
         annotated_frames.append(annotated_image)
         cv2.imwrite(f"./processing/extracted_frames/OD_{image_name}", annotated_image)
-
-
-
-        #TODO: CONTINUE FROM HERE TOMORROW ....IT'S GETTING CLOSE BUT NOT QUITE YET
-
-
-
-
-        # # #TODO: this creates a better sized box - but not in correct location
-        # fb0 = fixed_box_size[0]//2
-        # fb1 = fixed_box_size[1]//2
-        #
-        # start = (x1, y1)
-        # # end = (y1+fb0, y2+fb1)
-        # end = (x2+fb1, y2+fb0)
-        # cv2.rectangle(modified_image, start, end, (0,255,0), 3)
-        # cv2.imwrite(f"./processing/extracted_frames/OD_{image_name}", modified_image)
-
-
-        #TODO: FIX BOUNDING HERE FIRST BEFORE MOVING BACK TO REALTIME - CHANGES HAVE HELPED BUT STILL WRONG
-        #draws green bounding box on compy of original frame
-        # annotated_image = true_scale_image.copy()
-        # cv2.rectangle(annotated_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
-
-
-        #Adds confidence label
-        # confidence_label = f"Internal Confidence: {conf}"
-        # cv2.putText(annotated_image, confidence_label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        #
-        # #Add's class label if available
-        # if hasattr(class_index, '__len__') or class_index is not None:
-        #     class_label = f"Internal Class index: {int(class_index)}"
-        #     cv2.putText(annotated_image, class_label, (x1, y1 - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        #
-        # #appends annotated image to annotated frames and also outputs it to the defined directory
-        # annotated_frames.append(annotated_image)
-        # cv2.imwrite(f"./processing/extracted_frames/OD_{image_name}", annotated_image)
-
-        # fb0 = fixed_box_size[0]//2
-        # fb1 = fixed_box_size[1]//2
-
-        #TODO: TRY THIS IF IT FAILS
-        #start = (y1, y2)
-        #end = (y1+fb0, y2+fb1)
-        #plot = cv2.rectangle(modified_image, start, end, (0,255,0), 3)
     
         #converts to grayscale before cropping
         gray_true_scale_image = cv2.cvtColor(true_scale_image, cv2.COLOR_BGR2GRAY)
 
+
         #creates fixed size crop array
         crop = np.zeros((fixed_box_size[0], fixed_box_size[1]))
-
-        # for i in range(crop.shape[0]):
-        #     for j in range(crop.shape[1]):
-        #         ii, jj = y1+i, y2+j
-        #         if (ii < gray_true_scale_image.shape[0] and
-        #             jj < gray_true_scale_image.shape[1]):
-        #             crop[i][j] = gray_true_scale_image[ii][jj]
-
-        #TODO: TEST
-        # crop = np.zeros((fixed_box_size[0], fixed_box_size[1]))
         for i in range(crop.shape[0]):
             for j in range(crop.shape[1]):
                 ii, jj = y1+i, x1+j
@@ -306,15 +204,6 @@ def process(savepoint):
                     crop[i][j] = gray_true_scale_image[ii][jj]
 
         cropped_frames.append(crop)
-
-
-        # cv2.imshow("crop", crop.astype(np.uint8))
-        # cv2.imshow("plot", plot)
-        # cv2.waitKey(0)
-        # cv2.destroyAllWindows()
-
-        # cast coords to int, draw box on image
-        # showw("img", plot)
 
     return np.array(cropped_frames)
 
@@ -447,21 +336,21 @@ def process_realtime(frame):
     #TODO: test the for loop change and return change
     #ORIGINAL
 
-    crop = np.zeros((fixed_box_size[0], fixed_box_size[1]))
-    for i in range(crop.shape[0]):
-        for j in range(crop.shape[1]):
-            ii, jj = y1 + i, y2 + j
-            if (ii < gray_true_scale_image.shape[0] and
-                    jj < gray_true_scale_image.shape[1]):
-                crop[i][j] = gray_true_scale_image[ii][jj]
-
     # crop = np.zeros((fixed_box_size[0], fixed_box_size[1]))
     # for i in range(crop.shape[0]):
     #     for j in range(crop.shape[1]):
-    #         ii, jj = y1 + i, x1 + j
+    #         ii, jj = y1 + i, y2 + j
     #         if (ii < gray_true_scale_image.shape[0] and
     #                 jj < gray_true_scale_image.shape[1]):
     #             crop[i][j] = gray_true_scale_image[ii][jj]
+
+    crop = np.zeros((fixed_box_size[0], fixed_box_size[1]))
+    for i in range(crop.shape[0]):
+        for j in range(crop.shape[1]):
+            ii, jj = y1 + i, x1 + j
+            if (ii < gray_true_scale_image.shape[0] and
+                    jj < gray_true_scale_image.shape[1]):
+                crop[i][j] = gray_true_scale_image[ii][jj]
 
     cropped_frames.append(crop)
 
