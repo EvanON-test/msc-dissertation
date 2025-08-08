@@ -40,7 +40,10 @@ def unload_model():
     except Exception as e:
         print("Unloading KD failed due to: " + str(e))
 
+
 def process(frames):
+    """Main detection function. Receives cropped ROI's and detects the keypoints co-oridinates within each
+     before returning as a flattened array"""
 
     # Load TFLite model and allocate tensors.
     interpreter = tflite.Interpreter(model_path=
@@ -51,7 +54,10 @@ def process(frames):
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
 
+    #pre-initialises output array for the keypoint co-ords
     coords = np.zeros((frames.shape[0], 14))
+
+    #for loop processes each frame through the keypoint detection model
     for i in range(len(frames)):
 
         # frame = cv2.cvtColor(frames[i], cv2.COLOR_BGR2GRAY)
@@ -60,14 +66,18 @@ def process(frames):
         # height = 80
         # frame = cv2.resize(frame, (height, width))
 
+        #reshaped for model input
         input_data = np.reshape(
             frames[i], (1, frames[i].shape[0], frames[i].shape[1], 1))
 
+        #sets input datatype
         interpreter.set_tensor(
             input_details[0]['index'], input_data.astype(np.float32))
 
+        #executes the model
         interpreter.invoke()
 
+        #Assigns output tensor to index in coords array
         coords[i] = interpreter.get_tensor(output_details[0]['index'])
 
     return coords

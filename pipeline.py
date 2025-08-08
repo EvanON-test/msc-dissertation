@@ -77,6 +77,8 @@ class Pipeline:
         bc_time = time.time() - bc_start_time
 
 
+
+
         ##FRAME SELECTION
         fs_start_time = time.time()
         print("\nExtracting best frames...")
@@ -90,6 +92,9 @@ class Pipeline:
         del signal
         fs_time = time.time() - fs_start_time
 
+
+
+
         ##OBJECT DETECTOR
         od_start_time = time.time()
         # updates current stage value (if monitor instance running)
@@ -102,7 +107,7 @@ class Pipeline:
 
         video = cv2.VideoCapture(video_path)
 
-        #prinnts total No. of sub arrays and number frames in both the top and bottom arrays
+        #prints total No. of sub arrays and number frames in both the top and bottom arrays
         print("EXTRACTED: ")
         print(len(extracted_frame_idxs))
         print(len(extracted_frame_idxs[0]))
@@ -121,26 +126,31 @@ class Pipeline:
         # can also delete raw video here
 
         print("\nCropping to region of interest...")
+        #OD processes the videos in given directory and assigns the returned NumPy array of cropped frames to roi_frmaes
         roi_frames = od.process(savepoint)
-
         print("ROI FRAMES: ", roi_frames.shape)
-
         od_time = time.time() - od_start_time
 
-        ##KYEPOINT DETECTOR
-        kd_start_time = time.time()
 
+
+
+        ##KEYPOINT DETECTOR
+        kd_start_time = time.time()
         print("\nDetecting keypoints...")
+        # updates current stage value (if monitor instance running)
         if monitor:
             monitor.current_stage = "Keypoint Detector"
+        #KD rocesses the NumPy array and assigns
         coordinates = kd.process(roi_frames)
-
         kd_time = time.time() - kd_start_time
-
         print("\n{}\n".format(coordinates))
         print(coordinates.shape)
-
         pipeline_time = time.time() - start_time
+
+        #MODELS END
+
+
+
         print("\nFinished!\nPipeline took {} seconds to process \"{}\"".format(
             round(pipeline_time, 2), video_path))
         print(

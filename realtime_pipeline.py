@@ -21,17 +21,18 @@ import processing.keypoint_detector_util as kd
 
 
 
-# #TODO: THIS IS DUPLICATED - CAN IMPROVE LATER ITERATIONS - Potentially slim it as just to save image & keypoints
+# #TODO: THIS IS DUPLICATED IN DEMO - REFACTOR IN LATER ITERATIONS
 class SaveDetectionThread(Thread):
     """A separate thread that further processes and saves information regarding the detections. Currently further processes the frame to get the keypoint data
     before saving it as a csv file as well as saving the frame as well as the frame with the bounded box on"""
-    def __init__(self, frame, roi_frames, confidence, bbox, frame_counter):
+    def __init__(self, frame, roi_frames, confidence, bbox, class_index, frame_counter):
         """Initialises the thread class as well as the detection data from the realtimepipeline that is needed for the further processing """
         super().__init__()
         self.frame = frame
         self.roi_frames = roi_frames
         self.confidence = confidence
         self.bbox = bbox
+        self.class_index = class_index
         self.frame_counter = frame_counter
         self.output_directory = "./realtime_frames/"
         os.makedirs(self.output_directory, exist_ok=True)
@@ -58,12 +59,6 @@ class SaveDetectionThread(Thread):
             #TODO: remove this after debugging finished?
             frame_with_bbox = self.frame.copy()
             x1, y1, x2, y2 = self.bbox
-            # frame_height, frame_width = frame_with_bbox.shape[:2]
-            # bbox_width = x2 - x1
-            # bbox_height = y2 - y1
-            # print(f"Frame width: {frame_width}, Frame height: {frame_height}")
-            # print(f"Bbox: x1={x1}, y1={y1}, x2={x2}, y2={y2}")
-            # print(f"Bbox width: {bbox_width}, Bbox height: {bbox_height}")
 
             #TODO: fix this after
             #Draws a green box around the detected object (that is the aim at least)
@@ -71,6 +66,11 @@ class SaveDetectionThread(Thread):
             #Adds the info alongside the bounding box
             detection_text = f"Detection: {self.confidence:.2f}"
             cv2.putText(frame_with_bbox, detection_text, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+            #Add's class label if available
+            if self.class_index is not None:
+                class_label = f"Internal Class index: {int(self.class_index)}"
+                cv2.putText(frame_with_bbox, class_label, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
             # generates the unique filename for original image and saves it to the unique directory
             image_filename = f"{timestamp}_screenshot.jpg"
@@ -136,9 +136,9 @@ class ObjectDetectorThread(Thread):
 
                 print(f"Processing frame:  {frame_counter} for Object Detection")
                 # processes frame through object detector which outputs region of interest and confidence level
-                roi_frames, confidence, bbox = od.process_realtime(frame)
+                roi_frames, confidence, bbox, class_index = od.process_realtime(frame)
                 print(f"Frame processed successfully, confidence: {confidence:.2f}")
-                self.result_queue.put((frame, roi_frames, confidence, bbox, frame_counter))
+                self.result_queue.put((frame, roi_frames, confidence, bbox, class_index, frame_counter))
             except queue.Empty:
                 continue
             except Exception as e:
@@ -152,7 +152,7 @@ class ObjectDetectorThread(Thread):
 class RealtimePipeline:
     """Main class for running the realtime pipeline. Orchestrates the capture, display and processing of frames.
     This includes managing the created cpature and processing threads"""
-    def __init__(self, process_every_n_frames=60):
+    def __init__(self, process_every_n_frames=45):
         #Forces os's primary display (negates issues arising via ssh given commands)
         os.environ['DISPLAY'] = ':0'
         #TODO: Introduced a saved vid approach to test in fixed condition (personal tests can be done after)
@@ -169,7 +169,7 @@ class RealtimePipeline:
         #Stores previous frame for use in motion detection
         self.previous_frame = None
         #Minimum level, percentage, above which motion detection function is triggered
-        self.detection_minimum = 15
+        self.detection_minimum = 10
 
         self.detection_count = 0
         # starttime used for calculating runtime
@@ -188,7 +188,7 @@ class RealtimePipeline:
         """Detects motion between consecutive frames by comparing the current frame to the previous """
         #converts the frame to greyscale
         grey_image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        #Intialises peprevious frame to current frame, for first call
+        #Intialises perevious frame to current frame, for first call
         if self.previous_frame is None:
             self.previous_frame = grey_image
             return False
@@ -323,7 +323,7 @@ class RealtimePipeline:
 if __name__ == "__main__":
     # An updated approach. Argparse approach means the number of runs can added to the cli command
     parser = argparse.ArgumentParser(description='Run a CV pipeline with camera capture and processing')
-    parser.add_argument("--frames_interval", type=int, default=60, help="Process every N frmaes (60 default)")
+    parser.add_argument("--frames_interval", type=int, default=45, help="Process every N frmaes (45 default)")
     args = parser.parse_args()
     realtime_pipeline = RealtimePipeline(process_every_n_frames=args.frames_interval)
     realtime_pipeline.run()
