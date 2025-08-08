@@ -95,6 +95,11 @@ def process(savepoint):
         new_im.paste(Image.fromarray(np.uint8(true_scale_image)), (pos_x, pos_y))
         expanded_image = np.array(new_im)[..., :3]
 
+        print(f"DEBUGGING FOR: {image_name}")
+        print(f"Original HxW: {original_height} x {original_width}")
+        print(f"Padding Pos_x, pos_y: {pos_x}, {pos_y}")
+        print(f"Expanded shape: {expanded_image.shape}")
+
         # # GPU - rescale to 640, 640
         # try:
         #     modified_image = rescale_image_gpu(expanded_image)
@@ -111,6 +116,8 @@ def process(savepoint):
         b, h, w, ch = input_data.shape
         scale = max_size / ns / max(h, w)
 
+        print(f"Resized: {modified_image.shape}, Input shape: {input_data.shape} (h={h}, w={w})")
+
         #runs the model inference
         interpreter.set_tensor(
             input_details[0]['index'], 
@@ -124,34 +131,49 @@ def process(savepoint):
         y = [x if isinstance(x, np.ndarray) else x.numpy() for x in y]
         y[0][..., :4] *= [w, h, w, h]  # xywh normalized to pixels
 
+        print(f"\ny[0] shape: {y[0].shape}")
+
+
 
         # x1, y1, x2, y2, conf, class_index = non_max_suppression(y[0])[0][0]
         #Applies nms
         detections = non_max_suppression(y[0])
+
+        print(f"nms batches {len(detections)}, dets in batch {len(detections[0]) if len(detections)>0 else 0}")
+        if len(detections[0]) > 0:
+            det = detections[0][0]
+            print(f"DETECTIONS RAW: {det[:6].tolist()}")
+
 
         # detections count check, outputs no detections statement
         if len(detections[0]) == 0:
             print(f"No detections found for {image_name} within OD util!")
             continue
 
-        x_centre, y_centre, width, height, conf, class_index = detections[0][0]
+        #Wrong. nms output was xyxy
+        # x_centre, y_centre, width, height, conf, class_index = detections[0][0]
 
-        print(f"\nDetection results for {image_name}")
-        print(f"Centre: {x_centre}, {y_centre}")
-        print(f"Original image size {original_width}x{original_height}")
-        print(f'Size: {width}, height: {height}')
-        print(f"Confidence: {conf}")
+        x1, y1, x2, y2, conf, class_index = detections[0][0]
+
+
+        print(f"640 space xyxy: ({x1:.2f}, {y1:.2f}) - ({x2:.2f}, {y2:.2f}), size {x2-x1:.2f}x{y2-y1:.2f}, conf {conf:.2f}, cls {int(class_index) if class_index is not None else 'NA'}")
+
+        # print(f"\nDEBUGGING OUTPUTS FOR: {image_name}")
+        # print(f"BBOX: ({x1}, {y1}), ({x2}, {y2})")
+        # print(f"Original image size {original_width}x{original_height}")
+        # print(f'Size: {width}, height: {height}')
+        # print(f"Confidence: {conf}")
 
 
         #confidence check, outputs low confidence statement
         if conf < 0.25: #Lowered from 75 to 25
             print(f"Low confidence detection: {conf} within OD util!")
             continue
-
-        x1 = x_centre - width / 2
-        y1 = y_centre - height / 2
-        x2 = x_centre + width / 2
-        y2 = y_centre + height / 2
+        #As output was as origianlly thought xyxy it doesnt need this
+        # x1 = x_centre - width / 2
+        # y1 = y_centre - height / 2
+        # x2 = x_centre + width / 2
+        # y2 = y_centre + height / 2
 
 
         # # print(x1, y1, x2, y2)
@@ -170,10 +192,16 @@ def process(savepoint):
         offset_x = (1280 - original_width) / 2
         offset_y = (1280 - original_height) / 2
 
+        print(f"scale factor: {scale_factor}, offsets: {offset_x:.2f}, {offset_y:.2f}")
+        print(f"padded(1280) xyxy: ({x1_padded:.2f}, {y1_padded:.2f}) - ({x2_padded:.2f}, {y2_padded:.2f})")
+        print(f"offset_x: {offset_x:.2f}, offset_y: {offset_y:.2f}")
+
         x1_final = x1_padded - offset_x
         y1_final = y1_padded - offset_y
         x2_final = x2_padded - offset_x
         y2_final = y2_padded - offset_y
+
+        print(f"unpadded to original xyxy: ({x1_final:.2f}, {y1_final:.2f}) - ({x2_final:.2f}, {y2_final:.2f})")
 
         #sets to image boundaries
         x1 = max(0, int(x1_final))
@@ -184,10 +212,12 @@ def process(savepoint):
         actual_box_width = x2 - x1
         actual_box_height = y2 - y1
 
-        print("AFTER TRANSFORMATION")
-        print(f"BBox: ({x1, y1}, {x2, y2})")
-        print(f"Size after nms: {actual_box_width}x{actual_box_height}")
-        print(f"Original image size {original_width}x{original_height}")
+        print(f"Final int bbox: ({x1}, {y1}) - ({x2}, {y2}) on {original_width} x {original_height}, size {x2-x1}x{y2-y1}")
+        if x1>=x2 or y1 >= y2:
+            print("WARNING: invalid/zero area bbox after setting to image boundaries")
+        # print(f"BBox: ({x1, y1}, {x2, y2})")
+        # print(f"Size after nms: {actual_box_width}x{actual_box_height}")
+        # print(f"Original image size {original_width}x{original_height}")
 
         annotated_image = true_scale_image.copy()
         cv2.rectangle(annotated_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
@@ -206,7 +236,7 @@ def process(savepoint):
 
 
 
-        #TODO: CONTINUE FROM HERE TOMORROW
+        #TODO: CONTINUE FROM HERE TOMORROW ....IT'S GETTING CLOSE BUT NOT QUITE YET
 
 
 
