@@ -267,7 +267,8 @@ def process_realtime(frame):
     y[0][..., :4] *= [w, h, w, h]  # xywh normalized to pixels
 
     # Applies nms
-    detections = non_max_suppression(y[0])
+    # detections = non_max_suppression(y[0])
+    x1, y1, x2, y2, conf, class_index = non_max_suppression(y[0])[0][0]
 
     # # detections count check, outputs no detections statement
     # if len(detections[0]) == 0:
@@ -276,8 +277,6 @@ def process_realtime(frame):
 
     # Wrong. nms output was xyxy
     # x_centre, y_centre, width, height, conf, class_index = detections[0][0]
-
-    x1, y1, x2, y2, conf, class_index = detections[0][0]
 
     # # confidence check, outputs low confidence statement
     # if conf < 0.25:  # Lowered from 75 to 25
