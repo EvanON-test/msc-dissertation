@@ -19,7 +19,7 @@ from queue import Queue, Empty
 import processing.object_detector_util as od
 import processing.keypoint_detector_util as kd
 
-
+#TODO: NB: paused for optimisation
 
 # #TODO: THIS IS DUPLICATED IN DEMO - REFACTOR IN LATER ITERATIONS
 class SaveDetectionThread(Thread):
