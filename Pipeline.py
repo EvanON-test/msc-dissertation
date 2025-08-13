@@ -104,7 +104,10 @@ class Pipeline:
         # can also delete raw video here
 
         print("\nCropping to region of interest...")
-        roi_frames = od.process(savepoint)
+        try:
+            roi_frames = od.process_trt(savepoint)
+        except:
+            roi_frames = od.process(savepoint)
 
         print("ROI FRAMES: ", roi_frames.shape)
 
