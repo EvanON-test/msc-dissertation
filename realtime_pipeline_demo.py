@@ -244,6 +244,7 @@ class RealtimePipelineDemo:
         #Forces os's primary display (negates issues arising via ssh given commands)
         os.environ['DISPLAY'] = ':0'
         #TODO: Gstreamer pipeline. Elaborated in notion ADD more context here when cleaning up
+        # self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e drop=true max-buffers=2 sync=false"
         self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=2 sync=false"
         self.process_every_n_frames = process_every_n_frames
 
