@@ -334,6 +334,13 @@ class RealtimePipelineDemo:
             # Initialises camera capture utilising Gstreamer approach
             capture = cv2.VideoCapture(self.gst_stream, cv2.CAP_GSTREAMER)
             # Verifies camera opened succesfully
+        except Exception as e:
+            print(f"Error getting capture: {e}")
+
+        try:
+            # Initialises camera capture utilising Gstreamer approach
+            capture = cv2.VideoCapture(self.gst_stream, cv2.CAP_GSTREAMER)
+            # Verifies camera opened succesfully
             if capture.isOpened() == False:
                 print("GST Stream failed to open.")
                 return
