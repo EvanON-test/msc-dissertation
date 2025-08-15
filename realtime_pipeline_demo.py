@@ -337,6 +337,7 @@ class RealtimePipelineDemo:
             # Verifies camera opened succesfully
             if not capture.isOpened():
                 print("GST Stream failed to open.")
+                print(f"Pipeline: {self.gst_stream}")
                 return
 
             # extracts the cameras properties
