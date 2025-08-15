@@ -29,6 +29,8 @@ try:
 except ImportError:
     CPUTemperature = None
 
+import processing.binary_classifier_util as bc
+import processing.frame_selector_util as fs
 import processing.object_detector_util as od
 import processing.keypoint_detector_util as kd
 
@@ -142,9 +144,9 @@ class ObjectDetectorThread(Thread):
 
                 print(f"Processing frame:  {frame_counter} for Object Detection")
                 # processes frame through object detector which outputs region of interest and confidence level
-                roi_frames, confidence, bbox = od.process_realtime(frame)
+                roi_frames, confidence = od.process_realtime(frame)
                 print(f"Frame processed successfully, confidence: {confidence:.2f}")
-                self.result_queue.put((frame, roi_frames, confidence, bbox, frame_counter))
+                self.result_queue.put((frame, roi_frames, confidence, frame_counter))
             except queue.Empty:
                 continue
             except Exception as e:
