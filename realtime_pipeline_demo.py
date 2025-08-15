@@ -14,6 +14,7 @@ import csv
 import platform
 import psutil
 from queue import Queue
+import tempfile
 
 
 
@@ -23,11 +24,6 @@ try:
     from jtop import jtop
 except ImportError:
     jtop = None
-#gpiozero provides CPU temperature on the Pi's.
-try:
-    from gpiozero import CPUTemperature
-except ImportError:
-    CPUTemperature = None
 
 import processing.binary_classifier_util as bc
 import processing.frame_selector_util as fs
@@ -70,28 +66,11 @@ class SaveDetectionThread(Thread):
             detection_dir = os.path.join(self.output_directory, f"{timestamp}_Detection")
             os.mkdir(detection_dir)
 
-            #TODO: Adjust the code around into clearer blocks (unles you intend to remove it)
-            # frame_with_bbox = self.frame.copy()
-            # x1, y1, x2, y2 = self.bbox
-
-
-
-            #Draws a green box around the detected object (that is the aim at least)
-            # cv2.rectangle(frame_with_bbox, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            #Adds the info alongside the bounding box
-            # detection_text = f"Detection: {self.confidence:.2f}"
-            # cv2.putText(frame_with_bbox, detection_text, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
             # generates the unique filename for original image and saves it to the unique directory
             image_filename = f"{timestamp}_screenshot.jpg"
             path = os.path.join(detection_dir, image_filename)
             cv2.imwrite(path, self.frame)
-
-            # generates the unique filename for annotated image and saves it to the unique directory
-            # bbox_image_filename = f"bbox_{timestamp}_screenshot.jpg"
-            # bbox_path = os.path.join(detection_dir, bbox_image_filename)
-            # cv2.imwrite(bbox_path, frame_with_bbox)
-            # print(f"Saved high confidence frame: {self.confidence:.2f}")
 
 
             #processes the roi through the KD beofre returning the coordinates
@@ -112,7 +91,6 @@ class SaveDetectionThread(Thread):
             #summary of saved files
             print(f"Saved to: {image_filename}")
             print(f"Detection confidence: {self.confidence:.2f}")
-            print(f"Bounding Box: {self.bbox}")
         except Exception as e:
             print(f"ERROR SAVING DETECTION...{e}")
 
@@ -153,6 +131,107 @@ class ObjectDetectorThread(Thread):
                 print(f"Error in Object Detection Thread: {e}")
 
 
+class AnalysisThread(Thread):
+    def __init__(self, analysis_queue, detection_queue):
+        super().__init__()
+        self.analysis_queue = analysis_queue
+        self.detection_queue = detection_queue
+        self.running = True
+
+    def stop(self):
+        self.running = False
+
+    def run(self):
+        try:
+            print("Loading Binary Classifier and Frame Selector models...")
+            bc.load_model()
+            fs.load_model()
+        except Exception as e:
+            print(f"Failed to load Binary Classifier and Frame Selecto due to: {e}")
+            return
+
+        while self.running:
+            try:
+                frame_data = self.detection_queue.get(timeout=2)
+                if frame_data is None:
+                    continue
+
+                frames, start_frame = frame_data
+                print(f"Processing frame: {len(frames)} from {start_frame} for Binary Classifier and Frame Selector")
+
+                temp_video= tempfile.mktemp(suffix=".mp4")
+                height, width = frames[0].shape[:2]
+                fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+                video_writer = cv2.VideoWriter(temp_video, fourcc, 15.0, (width, height))
+
+                for frame in frames:
+                    video_writer.write(frame)
+
+                video_writer.release()
+                print("Temp Video created Successfully")
+
+                try:
+                    print("Attempting Binary Classification...")
+                    capture = cv2.VideoCapture(temp_video)
+
+                    if not capture.isOpened():
+                        print("Failed to open video capture for BC")
+                        continue
+
+                    signal = bc.process_realtime(capture)
+
+                    capture.release()
+
+                    positive_frames = sum(signal)
+
+                    if positive_frames == 0:
+                        print("No Crustacean detected - skipping FS processing")
+
+                    print("Attempting Frame Selection...")
+
+                    capture = cv2.VideoCapture(temp_video)
+
+                    if not capture.isOpened():
+                        print("Failed to open video capture for BC")
+                        continue
+
+                    extracted_frame_idxs = fs.process_realtime(signal, capture)
+
+                    capture.release()
+
+                    selected_index = None
+                    if extracted_frame_idxs[0]:
+                        selected_index = extracted_frame_idxs[0][0]
+                    elif extracted_frame_idxs[1]:
+                        selected_index = extracted_frame_idxs[1][0]
+
+                    if selected_index is not None:
+                        best_frame = frames[selected_index]
+                        frame_number = start_frame + selected_index
+                        print(f"Selected Frame: {frame_number} for Object Detection")
+
+                        try:
+                            self.detection_queue.put((best_frame.copy(), frame_number))
+                        except Exception as e:
+                            print(f"ERROR SAVING DETECTION...{e}")
+
+                    else:
+                        print("No good frame selected")
+
+                finally:
+                    try:
+                        os.remove(temp_video)
+                    except:
+                        pass
+
+            except queue.Empty:
+                continue
+            except Exception as e:
+                print(f"Error in Binary Classifier and Frame Selection Thread: {e}")
+
+
+
+
 
 
 
@@ -188,6 +267,15 @@ class RealtimePipelineDemo:
         self.detection_queue = Queue(maxsize=2)
         self.result_queue = Queue(maxsize=6)
         self.detection_thread = ObjectDetectorThread(self.detection_queue, self.result_queue)
+
+        self.analysis_queue = Queue(maxsize=2)
+        self.analysis_thread = AnalysisThread(self.analysis_queue, self.detection_queue)
+
+        self.collecting = False
+        self.collected_frames = []
+        self.collect_start = 0
+        self.frames_needed = 30
+
 
     def get_metrics(self):
         """Gathers metrics that have common access approaches in both devices and the specific device"""
@@ -242,10 +330,6 @@ class RealtimePipelineDemo:
     def run(self):
         """Creates, configures and starts both threads befroe waiting for completion and cleanly shutting down"""
         self.start_time = time.time()
-        #Load the models
-        # od.load_model()
-        # kd.load_model()
-
         try:
             # Initialises camera capture utilising Gstreamer approach
             capture = cv2.VideoCapture(self.gst_stream, cv2.CAP_GSTREAMER)
@@ -271,6 +355,7 @@ class RealtimePipelineDemo:
                 self.jetson.start()
 
             self.detection_thread.start()
+            self.analysis_thread.start()
 
             # The main loop, continues until quit
             while True:
@@ -294,48 +379,52 @@ class RealtimePipelineDemo:
 
                 if frame_counter % self.process_every_n_frames == 0:
                     motion_detected = self.detect_motion(frame)
-                    if motion_detected:
-                        try:
-                            self.detection_queue.put_nowait((frame.copy(), frame_counter))
-                            print(f"Submitted frame: {frame_counter} fro detection")
-                        except Exception as e:
-                            print("Detection queue is full.")
-                    else:
-                        print("Failed to detect motion.")
-                        continue
+                    if motion_detected and not self.collecting:
+                        print("Motion Detected starting to collect")
+                        self.collecting = True
+                        self.collected_frames = []
+                        self.collect_start = frame_counter
 
-
+                if self.collecting:
+                    self.collected_frames.append(frame.copy())
+                    if len(self.collected_frames) >= self.frames_needed:
+                        print("COllection complete")
                     try:
-                        while not self.result_queue.empty():
-                            # frame, roi_frames, confidence, bbox, frame_counter = self.result_queue.get_nowait()
-                            frame, roi_frames, confidence, frame_counter = self.result_queue.get_nowait()
-                            print(f"Recieved detection result For frame:  {frame_counter}, Confidence: {confidence}")
-                            if confidence > 0.75:
-                                self.detection_age = 0
-                                self.detection_confidence = confidence
-                                # self.detection_box = bbox
-                                print(f"Confidence sufficiently high: {confidence:.2f}")
-                                try:
-                                    self.detection_count += 1
-                                    #Calling the save detection processes in another thread with all the detection data
-                                    saving_thread = SaveDetectionThread(frame.copy(), roi_frames, confidence, frame_counter)
-                                    saving_thread.start()
-                                except Exception as e:
-                                    print(f'ERROR while implementing SaveDetectionThread: {e}')
-                                # clean memory
-                                del roi_frames, confidence
-                                gc.collect()
-                    except Exception as e:
-                        print(f"Detection Queue empty. Further Details: {e}")
+                        self.analysis_queue.put_nowait(self.collected_frames.copy(), self.collect_start)
+                    except:
+                        print("Analysis queue fulll")
+
+                    self.collecting = False
+                    self.collected_frames = []
+
+
+                try:
+                    while not self.result_queue.empty():
+                        # frame, roi_frames, confidence, bbox, frame_counter = self.result_queue.get_nowait()
+                        frame, roi_frames, confidence, frame_counter = self.result_queue.get_nowait()
+                        print(f"Recieved detection result For frame:  {frame_counter}, Confidence: {confidence}")
+                        if confidence > 0.75:
+                            self.detection_age = 0
+                            self.detection_confidence = confidence
+                            # self.detection_box = bbox
+                            print(f"Confidence sufficiently high: {confidence:.2f}")
+                            try:
+                                self.detection_count += 1
+                                #Calling the save detection processes in another thread with all the detection data
+                                saving_thread = SaveDetectionThread(frame.copy(), roi_frames, confidence, frame_counter)
+                                saving_thread.start()
+                            except Exception as e:
+                                print(f'ERROR while implementing SaveDetectionThread: {e}')
+                            # clean memory
+                            del roi_frames, confidence
+                            gc.collect()
+                except Exception as e:
+                    print(f"Detection Queue empty. Further Details: {e}")
 
                 if self.detection_age < 25:
                     detection_text = f"Detection: {self.detection_confidence:.2f}"
                     cv2.putText(display_frame, detection_text, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-                    # if self.detection_box is not None:
-                    #     #bounding box
-                    #     x1, y1, x2, y2 = self.detection_box
-                    #     cv2.rectangle(display_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
                     self.detection_age += 1
 
@@ -373,6 +462,9 @@ class RealtimePipelineDemo:
             od.unload_model()
             if self.jetson:
                 self.jetson.close()
+            if self.detection_thread.is_alive():
+                self.detection_thread.stop()
+                self.detection_thread.join()
             if self.detection_thread.is_alive():
                 self.detection_thread.stop()
                 self.detection_thread.join()
