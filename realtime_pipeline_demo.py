@@ -261,7 +261,7 @@ class RealtimePipelineDemo:
         self.start_time = 0
 
         #Metrics output
-        self.jetson = jtop()
+        self.jetson = jtop
 
         #Object detection thread
         self.detection_queue = Queue(maxsize=2)
@@ -279,7 +279,6 @@ class RealtimePipelineDemo:
 
     def get_metrics(self):
         """Gathers metrics that have common access approaches in both devices and the specific device"""
-        machine = platform.machine()
         metrics = {}
         try:
             metrics['cpu_percent'] = psutil.cpu_percent(interval=None)
@@ -330,12 +329,6 @@ class RealtimePipelineDemo:
     def run(self):
         """Creates, configures and starts both threads befroe waiting for completion and cleanly shutting down"""
         self.start_time = time.time()
-        try:
-            # Initialises camera capture utilising Gstreamer approach
-            capture = cv2.VideoCapture(self.gst_stream, cv2.CAP_GSTREAMER)
-            # Verifies camera opened succesfully
-        except Exception as e:
-            print(f"Error getting capture: {e}")
 
         try:
             # Initialises camera capture utilising Gstreamer approach
