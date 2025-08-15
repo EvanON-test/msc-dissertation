@@ -38,13 +38,13 @@ import processing.keypoint_detector_util as kd
 class SaveDetectionThread(Thread):
     """A separate thread that further processes and saves information regarding the detections. Currently further processes the frame to get the keypoint data
     before saving it as a csv file as well as saving the frame as well as the frame with the bounded box on"""
-    def __init__(self, frame, roi_frames, confidence, bbox, frame_counter):
+    def __init__(self, frame, roi_frames, confidence, frame_counter):
         """Initialises the thread class as well as the detection data from the realtimepipeline that is needed for the further processing """
         super().__init__()
         self.frame = frame
         self.roi_frames = roi_frames
         self.confidence = confidence
-        self.bbox = bbox
+
         self.frame_counter = frame_counter
         self.output_directory = "./realtime_frames/"
         os.makedirs(self.output_directory, exist_ok=True)
@@ -68,22 +68,17 @@ class SaveDetectionThread(Thread):
             detection_dir = os.path.join(self.output_directory, f"{timestamp}_Detection")
             os.mkdir(detection_dir)
 
-            #TODO: remove this after debugging finished?
-            frame_with_bbox = self.frame.copy()
-            x1, y1, x2, y2 = self.bbox
-            # frame_height, frame_width = frame_with_bbox.shape[:2]
-            # bbox_width = x2 - x1
-            # bbox_height = y2 - y1
-            # print(f"Frame width: {frame_width}, Frame height: {frame_height}")
-            # print(f"Bbox: x1={x1}, y1={y1}, x2={x2}, y2={y2}")
-            # print(f"Bbox width: {bbox_width}, Bbox height: {bbox_height}")
+            #TODO: Adjust the code around into clearer blocks (unles you intend to remove it)
+            # frame_with_bbox = self.frame.copy()
+            # x1, y1, x2, y2 = self.bbox
 
-            #TODO: fix this after - this has evidence of working perfectly a few times but not everytime
+
+
             #Draws a green box around the detected object (that is the aim at least)
-            cv2.rectangle(frame_with_bbox, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            # cv2.rectangle(frame_with_bbox, (x1, y1), (x2, y2), (0, 255, 0), 2)
             #Adds the info alongside the bounding box
-            detection_text = f"Detection: {self.confidence:.2f}"
-            cv2.putText(frame_with_bbox, detection_text, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            # detection_text = f"Detection: {self.confidence:.2f}"
+            # cv2.putText(frame_with_bbox, detection_text, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
             # generates the unique filename for original image and saves it to the unique directory
             image_filename = f"{timestamp}_screenshot.jpg"
@@ -91,10 +86,10 @@ class SaveDetectionThread(Thread):
             cv2.imwrite(path, self.frame)
 
             # generates the unique filename for annotated image and saves it to the unique directory
-            bbox_image_filename = f"bbox_{timestamp}_screenshot.jpg"
-            bbox_path = os.path.join(detection_dir, bbox_image_filename)
-            cv2.imwrite(bbox_path, frame_with_bbox)
-            print(f"Saved high confidence frame: {self.confidence:.2f}")
+            # bbox_image_filename = f"bbox_{timestamp}_screenshot.jpg"
+            # bbox_path = os.path.join(detection_dir, bbox_image_filename)
+            # cv2.imwrite(bbox_path, frame_with_bbox)
+            # print(f"Saved high confidence frame: {self.confidence:.2f}")
 
 
             #processes the roi through the KD beofre returning the coordinates
@@ -106,7 +101,6 @@ class SaveDetectionThread(Thread):
             with open(csv_path, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
                 #keypoint detector returns 7 keypoints with 2 cords each. Updated their names based on rereading the Research paper
-                # headers = ['x1, y1', 'x2', 'y2', 'x3', 'y3', 'x4', 'y4', 'x5', 'y5', 'x6', 'y6', 'x7', 'y7']
                 headers = ['crab_left_x1', 'crab_left_y1', 'crab_right_x2', 'crab_right_y2', 'left_eye_x3', 'left_eye_y3', 'right_eye_x4', 'right_eye_y4', 'carapace_end_x5', 'carapace_end_y5', 'tail_end_x6', 'tail_end_y6', 'last_segment_x7', 'last_segment_y7']
                 writer.writerow(headers)
                 writer.writerow(flattened_coordinates)
@@ -172,7 +166,7 @@ class RealtimePipelineDemo:
         self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720,framerate=15/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
         self.process_every_n_frames = process_every_n_frames
 
-        self.detection_box = None
+        # self.detection_box = None
         self.detection_confidence = 0.0
         self.detection_age = 0
 
@@ -201,24 +195,11 @@ class RealtimePipelineDemo:
             metrics['cpu_percent'] = psutil.cpu_percent(interval=None)
             memory = psutil.virtual_memory()
             metrics['ram_percent'] = memory.percent
-            if machine == "armv7l":
-                cpu_temp_pi = CPUTemperature().temperature
-                metrics['cpu_temp'] = round(cpu_temp_pi, 1)
-                # # TODO: Reinvestigate the options for these later
-                # # Sets the currently non-gatherable metrics to None
-                # metrics['gpu_percent'] = "N/A"
-                # metrics['gpu_temp'] = "N/A"
-                # metrics['power_used'] = "N/A"
-            elif machine == "aarch64":
-                # gets the nano metrics using the jtop service object
-                metrics['cpu_temp'] = self.jetson.temperature.get('CPU').get('temp')
-                metrics['gpu_temp'] = self.jetson.temperature.get('GPU').get('temp')
-                # Power metrics not possible on this iteration of NVIDIA's device
-                # metrics['power_used'] = "N/A"
-            else:
-                print("Unknown machine")
-                metrics['cpu_temp'] = "N/A"
-                metrics['gpu_temp'] = "N/A"
+            # gets the nano metrics using the jtop service object
+            metrics['cpu_temp'] = self.jetson.temperature.get('CPU').get('temp')
+            metrics['gpu_temp'] = self.jetson.temperature.get('GPU').get('temp')
+            # Power metrics not possible on this iteration of NVIDIA's device
+            # metrics['power_used'] = "N/A"
         except Exception as e:
             print(f"Error getting metrics: {e}")
         return metrics
@@ -324,33 +305,35 @@ class RealtimePipelineDemo:
 
                     try:
                         while not self.result_queue.empty():
-                            frame, roi_frames, confidence, bbox, frame_counter = self.result_queue.get_nowait()
+                            # frame, roi_frames, confidence, bbox, frame_counter = self.result_queue.get_nowait()
+                            frame, roi_frames, confidence, frame_counter = self.result_queue.get_nowait()
                             print(f"Recieved detection result For frame:  {frame_counter}, Confidence: {confidence}")
                             if confidence > 0.75:
                                 self.detection_age = 0
                                 self.detection_confidence = confidence
-                                self.detection_box = bbox
+                                # self.detection_box = bbox
                                 print(f"Confidence sufficiently high: {confidence:.2f}")
                                 try:
                                     self.detection_count += 1
                                     #Calling the save detection processes in another thread with all the detection data
-                                    saving_thread = SaveDetectionThread(frame.copy(), roi_frames, confidence, bbox, frame_counter)
+                                    saving_thread = SaveDetectionThread(frame.copy(), roi_frames, confidence, frame_counter)
                                     saving_thread.start()
                                 except Exception as e:
                                     print(f'ERROR while implementing SaveDetectionThread: {e}')
                                 # clean memory
-                                del roi_frames, confidence, bbox
+                                del roi_frames, confidence
                                 gc.collect()
                     except Exception as e:
                         print(f"Detection Queue empty. Further Details: {e}")
+
                 if self.detection_age < 25:
                     detection_text = f"Detection: {self.detection_confidence:.2f}"
                     cv2.putText(display_frame, detection_text, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-                    if self.detection_box is not None:
-                        #bounding box
-                        x1, y1, x2, y2 = self.detection_box
-                        cv2.rectangle(display_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    # if self.detection_box is not None:
+                    #     #bounding box
+                    #     x1, y1, x2, y2 = self.detection_box
+                    #     cv2.rectangle(display_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
                     self.detection_age += 1
 
@@ -362,15 +345,11 @@ class RealtimePipelineDemo:
                 # Adds text overlay to frame. Some is self explanatory. (10, 10) = (left, top). 0.5 = font size. (0, 255, 0) = hex colour green. 2 = text thickness
                 cv2.putText(display_frame, display_info, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-                # hardware_info = f"""CPU Percent: {hardware_metrics['cpu_percent']}%
-                #     CPU Temp: {hardware_metrics['cpu_temp']}
-                #     RAM Percent:{hardware_metrics['ram_percent']}%
-                #     GPU: {hardware_metrics['gpu_temp']}"""
 
                 cv2.putText(display_frame, f"CPU: {hardware_metrics['cpu_percent']}%", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                cv2.putText(display_frame, f"CPU Temp: {hardware_metrics['cpu_temp']} celsius", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                cv2.putText(display_frame, f"RAM: {hardware_metrics['ram_percent']}%", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                cv2.putText(display_frame, f"GPU: {hardware_metrics['gpu_temp']} celsius", (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv2.putText(display_frame, f"CPU Temp: {hardware_metrics['cpu_temp']} celsius", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv2.putText(display_frame, f"RAM: {hardware_metrics['ram_percent']}%", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv2.putText(display_frame, f"GPU: {hardware_metrics['gpu_temp']} celsius", (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
                 # displys the frame
                 cv2.imshow('Live Feed', display_frame)

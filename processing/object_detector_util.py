@@ -285,6 +285,7 @@ def process_realtime(frame):
 
     #Rejects small detections - poor approach to reduce issues regarding small object detections
     #TODO: Remove/Improve this later
+
     # width = x2 - x1
     # height = y2 - y1
     # if width < 20 or height < 20:
@@ -343,4 +344,5 @@ def process_realtime(frame):
 
     cropped_frames.append(crop)
 
-    return np.array(cropped_frames), conf, (x1, y1, x2, y2)
+    # return np.array(cropped_frames), conf, (x1, y1, x2, y2)
+    return np.array(cropped_frames), conf
