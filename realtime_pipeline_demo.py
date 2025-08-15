@@ -91,6 +91,7 @@ class SaveDetectionThread(Thread):
             #summary of saved files
             print(f"Saved to: {image_filename}")
             print(f"Detection confidence: {self.confidence:.2f}")
+            kd.unload_model()
         except Exception as e:
             print(f"ERROR SAVING DETECTION...{e}")
 
@@ -152,7 +153,7 @@ class AnalysisThread(Thread):
 
         while self.running:
             try:
-                frame_data = self.detection_queue.get(timeout=2)
+                frame_data = self.analysis_queue.get(timeout=2)
                 if frame_data is None:
                     continue
 
@@ -243,7 +244,6 @@ class RealtimePipelineDemo:
         #Forces os's primary display (negates issues arising via ssh given commands)
         os.environ['DISPLAY'] = ':0'
         #TODO: Gstreamer pipeline. Elaborated in notion ADD more context here when cleaning up
-        # TODO: RE-TEST WITH THE NEW UPDATED RESOLUTION
         self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720,framerate=15/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e"
         self.process_every_n_frames = process_every_n_frames
 
@@ -378,7 +378,11 @@ class RealtimePipelineDemo:
                 frame_counter += 1
 
                 if frame_counter % self.process_every_n_frames == 0:
-                    motion_detected = self.detect_motion(frame)
+                    try:
+                        motion_detected = self.detect_motion(frame)
+                    except Exception as e:
+                        print(f"Error detecting motion: {e}")
+                        motion_detected = False
                     if motion_detected and not self.collecting:
                         print("Motion Detected starting to collect")
                         self.collecting = True
@@ -390,7 +394,7 @@ class RealtimePipelineDemo:
                     if len(self.collected_frames) >= self.frames_needed:
                         print("COllection complete")
                     try:
-                        self.analysis_queue.put_nowait(self.collected_frames.copy(), self.collect_start)
+                        self.analysis_queue.put_nowait((self.collected_frames.copy(), self.collect_start))
                     except:
                         print("Analysis queue fulll")
 
@@ -465,9 +469,9 @@ class RealtimePipelineDemo:
             if self.detection_thread.is_alive():
                 self.detection_thread.stop()
                 self.detection_thread.join()
-            if self.detection_thread.is_alive():
-                self.detection_thread.stop()
-                self.detection_thread.join()
+            if self.analysis_thread.is_alive():
+                self.analysis_thread.stop()
+                self.analysis_thread.join()
 
 
             #Calulates the runtime and provides a summarisation of the overall run

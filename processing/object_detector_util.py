@@ -25,7 +25,7 @@ def load_model():
         preloaded_interpreter.allocate_tensors()
         preloaded_input_details = preloaded_interpreter.get_input_details()
         preloaded_output_details = preloaded_interpreter.get_output_details()
-        print("Model loaded")
+        print("OD Model loaded")
     except Exception as e:
         print("Preloading OD failed due to: " + str(e))
 
@@ -39,7 +39,7 @@ def unload_model():
         preloaded_interpreter = None
         preloaded_input_details = None
         preloaded_output_details = None
-        print("Model Unloaded")
+        print("OD Model Unloaded")
     except Exception as e:
         print("Unloading OD failed due to: " + str(e))
 
