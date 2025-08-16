@@ -184,6 +184,7 @@ class AnalysisThread(Thread):
                     capture.release()
 
                     print(f"Binary Classifier returned: {signal}")
+                    print(f"Binary Classifier signal length: {len(signal)}")
 
                     positive_frames = sum(signal)
 
