@@ -255,8 +255,7 @@ class RealtimePipelineDemo:
         #Forces os's primary display (negates issues arising via ssh given commands)
         os.environ['DISPLAY'] = ':0'
         #TODO: Gstreamer pipeline. Elaborated in notion ADD more context here when cleaning up
-        # self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink -e drop=true max-buffers=2 sync=false"
-        self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=2 sync=false"
+        self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720, framerate=15/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=2 sync=false"
         self.process_every_n_frames = process_every_n_frames
 
         # self.detection_box = None
@@ -286,7 +285,8 @@ class RealtimePipelineDemo:
         self.collecting = False
         self.collected_frames = []
         self.collect_start = 0
-        self.frames_needed = 30
+        #TODO: test lower var below and lower fps
+        self.frames_needed = 15
 
 
     def get_metrics(self):
