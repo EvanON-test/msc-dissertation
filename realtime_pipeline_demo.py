@@ -1,4 +1,5 @@
 #TODO: DONT FORGET TO cite the code sections you have used formally (gst, gfg etc)
+#TODO: Replace print with logging info for better threading output
 #TODO: test with 60, 30, 15 etc various levels for basic performance understanding
 import queue
 import time
@@ -52,10 +53,10 @@ class SaveDetectionThread(Thread):
         """Main pipeline for processing and saving the data. Saves the frame as an image, modifies and saves an annotated copy
         and also processes via the KD and saves the output as a csv."""
         try:
-            print("Loading Keypoint Detector...")
+            print("SAVE DETECTION THREAD: Loading Keypoint Detector...")
             kd.load_model()
         except Exception as e:
-            print(f"Failed to load Keypoint Detector due to: {e}")
+            print(f"SAVE DETECTION THREAD: Failed to load Keypoint Detector due to: {e}")
             return
         try:
             #cretes a timestamp used when creating unique directory and filenames
@@ -85,15 +86,15 @@ class SaveDetectionThread(Thread):
                 headers = ['crab_left_x1', 'crab_left_y1', 'crab_right_x2', 'crab_right_y2', 'left_eye_x3', 'left_eye_y3', 'right_eye_x4', 'right_eye_y4', 'carapace_end_x5', 'carapace_end_y5', 'tail_end_x6', 'tail_end_y6', 'last_segment_x7', 'last_segment_y7']
                 writer.writerow(headers)
                 writer.writerow(flattened_coordinates)
-            print(f"Keypoints saved to: {csv_path}")
+            print(f"SAVE DETECTION THREAD: Keypoints saved to: {csv_path}")
 
 
             #summary of saved files
-            print(f"Saved to: {image_filename}")
-            print(f"Detection confidence: {self.confidence:.2f}")
+            print(f"SAVE DETECTION THREAD: Saved to: {image_filename}")
+            print(f"SAVE DETECTION THREAD: Detection confidence: {self.confidence:.2f}")
             kd.unload_model()
         except Exception as e:
-            print(f"ERROR SAVING DETECTION...{e}")
+            print(f"SAVE DETECTION THREAD: ERROR SAVING DETECTION...{e}")
 
 #TODO: Iterate and improve on this threaded approach. USE MONITORING AND DOCS
 class ObjectDetectorThread(Thread):
@@ -108,10 +109,10 @@ class ObjectDetectorThread(Thread):
 
     def run(self):
         try:
-            print("Loading Object Detector...")
+            print("OD THREAD: Loading Object Detector...")
             od.load_model()
         except Exception as e:
-            print(f"Failed to load Object Detector due to: {e}")
+            print(f"OD THREAD: Failed to load Object Detector due to: {e}")
             return
         while self.running:
             try:
@@ -121,15 +122,15 @@ class ObjectDetectorThread(Thread):
 
                 frame, frame_counter = frame_data
 
-                print(f"Processing frame:  {frame_counter} for Object Detection")
+                print(f"OD THREAD:Processing frame:  {frame_counter} for Object Detection")
                 # processes frame through object detector which outputs region of interest and confidence level
                 roi_frames, confidence = od.process_realtime(frame)
-                print(f"Frame processed successfully, confidence: {confidence:.2f}")
+                print(f"OD THREAD: Frame processed successfully, confidence: {confidence:.2f}")
                 self.result_queue.put((frame, roi_frames, confidence, frame_counter))
             except queue.Empty:
                 continue
             except Exception as e:
-                print(f"Error in Object Detection Thread: {e}")
+                print(f"OD THREAD: Error in Object Detection Thread: {e}")
 
 
 class AnalysisThread(Thread):
@@ -144,11 +145,11 @@ class AnalysisThread(Thread):
 
     def run(self):
         try:
-            print("Loading Binary Classifier and Frame Selector models...")
+            print("ANALYSIS THREAD: Loading Binary Classifier and Frame Selector models...")
             bc.load_model()
             fs.load_model()
         except Exception as e:
-            print(f"Failed to load Binary Classifier and Frame Selecto due to: {e}")
+            print(f"ANALYSIS THREAD: Failed to load Binary Classifier and Frame Selecto due to: {e}")
             return
 
         while self.running:
@@ -158,7 +159,7 @@ class AnalysisThread(Thread):
                     continue
 
                 frames, start_frame = frame_data
-                print(f"Processing frame: {len(frames)} from {start_frame} for Binary Classifier and Frame Selector")
+                print(f"ANALYSIS THREAD: Processing frame: {len(frames)} from {start_frame} for Binary Classifier and Frame Selector")
 
                 temp_video= tempfile.mktemp(suffix=".mp4")
                 height, width = frames[0].shape[:2]
@@ -169,14 +170,14 @@ class AnalysisThread(Thread):
                     video_writer.write(frame)
 
                 video_writer.release()
-                print("Temp Video created Successfully")
+                print("ANALYSIS THREAD: Temp Video created Successfully")
 
                 try:
-                    print("Attempting Binary Classification...")
+                    print("ANALYSIS THREAD: Attempting Binary Classification...")
                     capture = cv2.VideoCapture(temp_video)
 
                     if not capture.isOpened():
-                        print("Failed to open video capture for BC")
+                        print("ANALYSIS THREAD: Failed to open video capture for BC")
                         continue
 
                     signal = bc.process_realtime(capture)
@@ -184,28 +185,28 @@ class AnalysisThread(Thread):
 
                     capture.release()
 
-                    print(f"Binary Classifier returned: {signal}")
-                    print(f"Binary Classifier signal length: {len(signal)}")
+                    print(f"ANALYSIS THREAD: Binary Classifier returned: {signal}")
+                    print(f"ANALYSIS THREAD: Binary Classifier signal length: {len(signal)}")
 
                     positive_frames = sum(signal)
 
                     if positive_frames == 0:
-                        print("No Crustacean detected - skipping FS processing")
+                        print("ANALYSIS THREAD: No Crustacean detected - skipping FS processing")
                         continue
 
-                    print("Attempting Frame Selection...")
+                    print("ANALYSIS THREAD: Attempting Frame Selection...")
 
                     capture = cv2.VideoCapture(temp_video)
 
                     if not capture.isOpened():
-                        print("Failed to open video capture for BC")
+                        print("ANALYSIS THREAD: Failed to open video capture for BC")
                         continue
 
                     extracted_frame_idxs = fs.process_realtime(signal, capture)
 
                     capture.release()
 
-                    print("EXTRACTED: ")
+                    print("ANALYSIS THREAD: EXTRACTED: ")
                     print(len(extracted_frame_idxs))
                     print(len(extracted_frame_idxs[0]))
                     print(len(extracted_frame_idxs[1]))
@@ -219,15 +220,15 @@ class AnalysisThread(Thread):
                     if selected_index is not None:
                         best_frame = frames[selected_index]
                         frame_number = start_frame + selected_index
-                        print(f"Selected Frame: {frame_number} for Object Detection")
+                        print(f"ANALYSIS THREAD: Selected Frame: {frame_number} for Object Detection")
 
                         try:
                             self.detection_queue.put((best_frame.copy(), frame_number))
                         except Exception as e:
-                            print(f"ERROR SAVING DETECTION...{e}")
+                            print(f"ANALYSIS THREAD: ERROR SAVING DETECTION...{e}")
 
                     else:
-                        print("No good frame selected")
+                        print("ANALYSIS THREAD: No good frame selected")
 
                 finally:
                     try:
@@ -238,7 +239,7 @@ class AnalysisThread(Thread):
             except queue.Empty:
                 continue
             except Exception as e:
-                print(f"Error in Binary Classifier and Frame Selection Thread: {e}")
+                print(f"ANALYSIS THREAD: Error in Binary Classifier and Frame Selection Thread: {e}")
 
 
 
@@ -330,10 +331,10 @@ class RealtimePipelineDemo:
         movement_percentage = (non_zero_count / total_pixels) * 100
        #Checks if the percentage greater than minimum (currently 30) and returns boolean
         if movement_percentage > self.detection_minimum:
-            print(f"Detected motion: {movement_percentage:.2f}%")
+            print(f"REALTIME PIPELINE: Detected motion: {movement_percentage:.2f}%")
             return True
         else:
-            print(f"Not significant motion: {movement_percentage:.2f}%")
+            print(f"REALTIME PIPELINE: Not significant motion: {movement_percentage:.2f}%")
             return False
 
 
@@ -346,8 +347,8 @@ class RealtimePipelineDemo:
             capture = cv2.VideoCapture(self.gst_stream, cv2.CAP_GSTREAMER)
             # Verifies camera opened succesfully
             if not capture.isOpened():
-                print("GST Stream failed to open.")
-                print(f"Pipeline: {self.gst_stream}")
+                print("REALTIME PIPELINE: GST Stream failed to open.")
+                print(f"REALTIME PIPELINE: Pipeline: {self.gst_stream}")
                 return
 
             # extracts the cameras properties
@@ -359,9 +360,9 @@ class RealtimePipelineDemo:
             fps_timer_start = cv2.getTickCount()
             current_fps = 0.0
 
-            print(f"Camera initialised successfully.")
-            print(f"Processing every {self.process_every_n_frames} frames.")
-            print(f"Press CTRL+C to exit or q to exit.")
+            print(f"REALTIME PIPELINE: Camera initialised successfully.")
+            print(f"REALTIME PIPELINE: Processing every {self.process_every_n_frames} frames.")
+            print(f"REALTIME PIPELINE: Press CTRL+C to exit or q to exit.")
 
             if self.jetson:
                 self.jetson.start()
@@ -374,7 +375,7 @@ class RealtimePipelineDemo:
                 # reads next frame from camera
                 ret, frame = capture.read()
                 if not ret:
-                    print("Failed to capture frame.")
+                    print("REALTIME PIPELINE: Failed to capture frame.")
                     continue
 
                 display_frame = frame.copy()
@@ -393,10 +394,10 @@ class RealtimePipelineDemo:
                     try:
                         motion_detected = self.detect_motion(frame)
                     except Exception as e:
-                        print(f"Error detecting motion: {e}")
+                        print(f"REALTIME PIPELINE: Error detecting motion: {e}")
                         motion_detected = False
                     if motion_detected and not self.collecting:
-                        print("Motion Detected starting to collect")
+                        print("REALTIME PIPELINE: Motion Detected starting to collect")
                         self.collecting = True
                         self.collected_frames = []
                         self.collect_start = frame_counter
@@ -404,11 +405,11 @@ class RealtimePipelineDemo:
                 if self.collecting:
                     self.collected_frames.append(frame.copy())
                     if len(self.collected_frames) >= self.frames_needed:
-                        print("COllection complete")
+                        print("REALTIME PIPELINE: Collection complete")
                         try:
                             self.analysis_queue.put_nowait((self.collected_frames.copy(), self.collect_start))
                         except:
-                            print("Analysis queue fulll")
+                            print("REALTIME PIPELINE: Analysis queue full")
 
                         self.collecting = False
                         self.collected_frames = []
@@ -418,27 +419,27 @@ class RealtimePipelineDemo:
                     while not self.result_queue.empty():
                         # frame, roi_frames, confidence, bbox, frame_counter = self.result_queue.get_nowait()
                         frame, roi_frames, confidence, frame_counter = self.result_queue.get_nowait()
-                        print(f"Recieved detection result For frame:  {frame_counter}, Confidence: {confidence}")
+                        print(f"REALTIME PIPELINE: Recieved detection result For frame:  {frame_counter}, Confidence: {confidence}")
                         if confidence > 0.75:
                             self.detection_age = 0
                             self.detection_confidence = confidence
                             # self.detection_box = bbox
-                            print(f"Confidence sufficiently high: {confidence:.2f}")
+                            print(f"REALTIME PIPELINE: Confidence sufficiently high: {confidence:.2f}")
                             try:
                                 self.detection_count += 1
                                 #Calling the save detection processes in another thread with all the detection data
                                 saving_thread = SaveDetectionThread(frame.copy(), roi_frames, confidence, frame_counter)
                                 saving_thread.start()
                             except Exception as e:
-                                print(f'ERROR while implementing SaveDetectionThread: {e}')
+                                print(f'REALTIME PIPELINE: ERROR while implementing SaveDetectionThread: {e}')
                             # clean memory
                             del roi_frames, confidence
                             gc.collect()
                 except Exception as e:
-                    print(f"Detection Queue empty. Further Details: {e}")
+                    print(f"REALTIME PIPELINE: Detection Queue empty. Further Details: {e}")
 
                 if self.detection_age < 25:
-                    detection_text = f"Detection: {self.detection_confidence:.2f}"
+                    detection_text = f"REALTIME PIPELINE: Detection: {self.detection_confidence:.2f}"
                     cv2.putText(display_frame, detection_text, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
 
@@ -463,14 +464,14 @@ class RealtimePipelineDemo:
 
                 # checks for user input. If q pressed initiates stop event
                 if cv2.waitKey(1) & 0xFF == ord('q'):
-                    print("User pressed q to exit. Shutting down.")
+                    print("REALTIME PIPELINE: User pressed q to exit. Shutting down.")
                     break
 
 
         except KeyboardInterrupt:
-            print("Interrupted by Keyboard.")
+            print("REALTIME PIPELINE: Interrupted by Keyboard.")
         except Exception as e:
-            print(f"CAPTRUE THREAD: Error has arisen due to: {e}")
+            print(f"REALTIME PIPELINE: Error has arisen due to: {e}")
         finally:
             # Resouces minimisation after loops have completed
             capture.release()

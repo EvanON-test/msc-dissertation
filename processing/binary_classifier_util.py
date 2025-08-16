@@ -25,7 +25,7 @@ def load_model():
     global preloaded_interpreter
     global preloaded_input_details
     global preloaded_output_details
-    print("Loading Binary Classifier model...")
+    print("BC UTIL: Loading Binary Classifier model...")
     try:
         # print("\nLoading binary_classifier...")
         model = {}
@@ -44,23 +44,23 @@ def load_model():
         preloaded_interpreter = model
         preloaded_input_details = model['input_details']
         preloaded_output_details = model['output_details']
-        print("BC Model loaded")
+        print("BC UTIL: BC Model loaded")
     except Exception as e:
-        print("Preloading BC failed due to: " + str(e))
+        print("BC UTIL: Preloading BC failed due to: " + str(e))
 
 #Unloads model using global variables
 def unload_model():
     global preloaded_interpreter
     global preloaded_input_details
     global preloaded_output_details
-    print("Unloading Binary Classifier model...")
+    print("BC UTIL: Unloading Binary Classifier model...")
     try:
         preloaded_interpreter = None
         preloaded_input_details = None
         preloaded_output_details = None
         print("BC Model Unloaded")
     except Exception as e:
-        print("Unloading BC failed due to: " + str(e))
+        print("BC UTIL: Unloading BC failed due to: " + str(e))
 
 
 #downscales the original image (1280x720) to the lower res values defined above
@@ -81,7 +81,7 @@ def classify_video(video, model):
     # check loaded
     success, image = video.read()
     if not success:
-        print("\nERROR\n")
+        print("\nBC UTIL: ERROR\n")
         sys.exit()
 
     total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
