@@ -255,12 +255,13 @@ class RealtimePipelineDemo:
         #Forces os's primary display (negates issues arising via ssh given commands)
         os.environ['DISPLAY'] = ':0'
         #TODO: Gstreamer pipeline. Elaborated in notion ADD more context here when cleaning up
-        self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720, framerate=60/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=2 sync=false"
+        self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720, framerate=45/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=2 sync=false"
         self.process_every_n_frames = process_every_n_frames
 
         # self.detection_box = None
         self.detection_confidence = 0.0
-        self.detection_age = 0
+        #TODO: not sure if needed now (think it was just bb relevance) test removal later
+        #self.detection_age = 0
 
         #Stores previous frame for use in motion detection
         self.previous_frame = None
@@ -423,8 +424,8 @@ class RealtimePipelineDemo:
                         if confidence > 0.75:
                             self.detection_age = 0
                             self.detection_confidence = confidence
-                            # self.detection_box = bbox
                             print(f"REALTIME PIPELINE: Confidence sufficiently high: {confidence:.2f}")
+                            cv2.putText(display_frame, f"Crustacean Detection Confidence: {confidence:.2f}", (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255, 0, 0), 2)
                             try:
                                 self.detection_count += 1
                                 #Calling the save detection processes in another thread with all the detection data
@@ -439,12 +440,12 @@ class RealtimePipelineDemo:
                     print(f"REALTIME PIPELINE: Detection Queue empty. Further Details: {e}")
 
                 #TODO: not sure if needed now (think it was just bb relevance) test removal later
-                if self.detection_age < 25:
-                    detection_text = f"REALTIME PIPELINE: Detection: {self.detection_confidence:.2f}"
-                    cv2.putText(display_frame, detection_text, (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-
-                    self.detection_age += 1
+                #if self.detection_age < 25:
+                #     detection_text = f"REALTIME PIPELINE: Detection: {self.detection_confidence:.2f}"
+                #     cv2.putText(display_frame, detection_text, (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                #
+                #
+                #     self.detection_age += 1
 
                 hardware_metrics = self.get_metrics()
                 if frame_counter % self.process_every_n_frames == 0:
