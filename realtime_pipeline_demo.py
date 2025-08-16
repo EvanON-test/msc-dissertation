@@ -224,7 +224,6 @@ class AnalysisThread(Thread):
 
                         try:
                             self.detection_queue.put((best_frame.copy(), frame_number))
-                            #TODO: add object detection here?
                         except Exception as e:
                             print(f"ANALYSIS THREAD: ERROR SAVING DETECTION...{e}")
 
