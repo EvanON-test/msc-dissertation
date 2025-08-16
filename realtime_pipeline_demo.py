@@ -251,7 +251,7 @@ class AnalysisThread(Thread):
 class RealtimePipelineDemo:
     """Main class for running the realtime pipeline. Orchestrates the capture, display and processing of frames.
     This includes managing the created cpature and processing threads"""
-    def __init__(self, process_every_n_frames=60):
+    def __init__(self, process_every_n_frames=15):
         #Forces os's primary display (negates issues arising via ssh given commands)
         os.environ['DISPLAY'] = ':0'
         #TODO: Gstreamer pipeline. Elaborated in notion ADD more context here when cleaning up
@@ -440,7 +440,7 @@ class RealtimePipelineDemo:
 
                 if self.detection_age < 25:
                     detection_text = f"REALTIME PIPELINE: Detection: {self.detection_confidence:.2f}"
-                    cv2.putText(display_frame, detection_text, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                    cv2.putText(display_frame, detection_text, (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
 
                     self.detection_age += 1
@@ -455,8 +455,8 @@ class RealtimePipelineDemo:
 
 
                 cv2.putText(display_frame, f"CPU: {hardware_metrics['cpu_percent']}%", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                cv2.putText(display_frame, f"CPU Temp: {hardware_metrics['cpu_temp']} celsius", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                cv2.putText(display_frame, f"RAM: {hardware_metrics['ram_percent']}%", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv2.putText(display_frame, f"RAM: {hardware_metrics['ram_percent']}%", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv2.putText(display_frame, f"CPU Temp: {hardware_metrics['cpu_temp']} celsius", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                 cv2.putText(display_frame, f"GPU: {hardware_metrics['gpu_temp']} celsius", (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
                 # displys the frame
@@ -499,7 +499,7 @@ class RealtimePipelineDemo:
 if __name__ == "__main__":
     # An updated approach. Argparse approach means the number of runs can added to the cli command
     parser = argparse.ArgumentParser(description='Run a CV pipeline with camera capture and processing')
-    parser.add_argument("--frames_interval", type=int, default=60, help="Process every N frmaes (60 default)")
+    parser.add_argument("--frames_interval", type=int, default=15, help="Process every N frmaes (15 default)")
     args = parser.parse_args()
     realtime_pipeline = RealtimePipelineDemo(process_every_n_frames=args.frames_interval)
     realtime_pipeline.run()
