@@ -422,7 +422,7 @@ class RealtimePipelineDemo:
                         frame, roi_frames, confidence, frame_counter = self.result_queue.get_nowait()
                         print(f"REALTIME PIPELINE: Recieved detection result For frame:  {frame_counter}, Confidence: {confidence}")
                         if confidence > 0.75:
-                            self.detection_age = 0
+                            # self.detection_age = 0
                             self.detection_confidence = confidence
                             print(f"REALTIME PIPELINE: Confidence sufficiently high: {confidence:.2f}")
                             cv2.putText(display_frame, f"Crustacean Detection Confidence: {confidence:.2f}", (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255, 0, 0), 2)
@@ -446,6 +446,17 @@ class RealtimePipelineDemo:
                 #
                 #
                 #     self.detection_age += 1
+
+                status = f"REALTIME PIPELINE: Collecting frames {len(self.collected_frames)}/{self.frames_needed}"
+                cv2.putText(display_frame, status, (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
+
+                if not self.analysis_queue.empty():
+                    cv2.putText(display_frame, "ANALZYING FRAMES...", (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
+
+                if not self.detection_queue.empty():
+                    cv2.putText(display_frame, "DETECTING OBJECT", (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
+
+                cv2.putText(display_frame, f"DETECTION COUNT: {self.detection_count}", (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
 
                 hardware_metrics = self.get_metrics()
                 if frame_counter % self.process_every_n_frames == 0:
