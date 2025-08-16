@@ -300,27 +300,27 @@ def process_realtime(frame):
     #get original dimensions
 
 
-    #scale back to original
-    scale_factor = 1280 / 640
-    x1_padded = x1 * scale_factor
-    y1_padded = y1 * scale_factor
-    x2_padded = x2 * scale_factor
-    y2_padded = y2 * scale_factor
-
-    #Removes padding offset
-    offset_x = (1280 - original_width) / 2
-    offset_y = (1280 - original_height) / 2
-
-    x1_final = x1_padded - offset_x
-    y1_final = y1_padded - offset_y
-    x2_final = x2_padded - offset_x
-    y2_final = y2_padded - offset_y
-
-    #sets to image boundaries
-    x1 = max(0, int(x1_final))
-    y1 = max(0, int(y1_final))
-    x2 = min(original_width, int(x2_final))
-    y2 = min(original_height, int(y2_final))
+    # #scale back to original
+    # scale_factor = 1280 / 640
+    # x1_padded = x1 * scale_factor
+    # y1_padded = y1 * scale_factor
+    # x2_padded = x2 * scale_factor
+    # y2_padded = y2 * scale_factor
+    #
+    # #Removes padding offset
+    # offset_x = (1280 - original_width) / 2
+    # offset_y = (1280 - original_height) / 2
+    #
+    # x1_final = x1_padded - offset_x
+    # y1_final = y1_padded - offset_y
+    # x2_final = x2_padded - offset_x
+    # y2_final = y2_padded - offset_y
+    #
+    # #sets to image boundaries
+    # x1 = max(0, int(x1_final))
+    # y1 = max(0, int(y1_final))
+    # x2 = min(original_width, int(x2_final))
+    # y2 = min(original_height, int(y2_final))
 
     gray_true_scale_image = cv2.cvtColor(true_scale_image, cv2.COLOR_BGR2GRAY)
 
