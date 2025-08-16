@@ -265,7 +265,8 @@ class RealtimePipelineDemo:
         #Stores previous frame for use in motion detection
         self.previous_frame = None
         #Minimum level, percentage, above which motion detection function is triggered
-        self.detection_minimum = 15
+        #TODO: test from 15 to higher
+        self.detection_minimum = 25
 
         self.detection_count = 0
         # starttime used for calculating runtime
@@ -285,7 +286,6 @@ class RealtimePipelineDemo:
         self.collecting = False
         self.collected_frames = []
         self.collect_start = 0
-        #TODO: test lower var below and lower fps
         self.frames_needed = 15
 
 
