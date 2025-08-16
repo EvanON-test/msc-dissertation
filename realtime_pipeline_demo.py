@@ -286,7 +286,7 @@ class RealtimePipelineDemo:
         self.collecting = False
         self.collected_frames = []
         self.collect_start = 0
-        self.frames_needed = 45
+        self.frames_needed = 30
 
 
     def get_metrics(self):
