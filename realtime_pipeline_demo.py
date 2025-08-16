@@ -183,10 +183,13 @@ class AnalysisThread(Thread):
 
                     capture.release()
 
+                    print(f"Binary Classifier returned: {signal}")
+
                     positive_frames = sum(signal)
 
                     if positive_frames == 0:
                         print("No Crustacean detected - skipping FS processing")
+                        continue
 
                     print("Attempting Frame Selection...")
 
@@ -199,6 +202,11 @@ class AnalysisThread(Thread):
                     extracted_frame_idxs = fs.process_realtime(signal, capture)
 
                     capture.release()
+
+                    print("EXTRACTED: ")
+                    print(len(extracted_frame_idxs))
+                    print(len(extracted_frame_idxs[0]))
+                    print(len(extracted_frame_idxs[1]))
 
                     selected_index = None
                     if extracted_frame_idxs[0]:
