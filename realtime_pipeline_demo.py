@@ -251,7 +251,7 @@ class AnalysisThread(Thread):
 class RealtimePipelineDemo:
     """Main class for running the realtime pipeline. Orchestrates the capture, display and processing of frames.
     This includes managing the created cpature and processing threads"""
-    def __init__(self, process_every_n_frames=15):
+    def __init__(self, process_every_n_frames=30):
         #Forces os's primary display (negates issues arising via ssh given commands)
         os.environ['DISPLAY'] = ':0'
         #TODO: Gstreamer pipeline. Elaborated in notion ADD more context here when cleaning up
@@ -501,7 +501,7 @@ class RealtimePipelineDemo:
 if __name__ == "__main__":
     # An updated approach. Argparse approach means the number of runs can added to the cli command
     parser = argparse.ArgumentParser(description='Run a CV pipeline with camera capture and processing')
-    parser.add_argument("--frames_interval", type=int, default=15, help="Process every N frmaes (15 default)")
+    parser.add_argument("--frames_interval", type=int, default=30, help="Process every N frmaes (30 default)")
     args = parser.parse_args()
     realtime_pipeline = RealtimePipelineDemo(process_every_n_frames=args.frames_interval)
     realtime_pipeline.run()
