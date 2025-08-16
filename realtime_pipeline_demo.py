@@ -431,6 +431,9 @@ class RealtimePipelineDemo:
                                 #Calling the save detection processes in another thread with all the detection data
                                 saving_thread = SaveDetectionThread(frame.copy(), roi_frames, confidence, frame_counter)
                                 saving_thread.start()
+
+                                #TODO: test wait
+                                time.sleep(3)
                             except Exception as e:
                                 print(f'REALTIME PIPELINE: ERROR while implementing SaveDetectionThread: {e}')
                             # clean memory
@@ -448,7 +451,7 @@ class RealtimePipelineDemo:
                 #     self.detection_age += 1
 
                 status = f"REALTIME PIPELINE: Collecting frames {len(self.collected_frames)}/{self.frames_needed}"
-                cv2.putText(display_frame, status, (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
+                cv2.putText(display_frame, status, (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
 
                 if not self.analysis_queue.empty():
                     cv2.putText(display_frame, "ANALYZING FRAMES...", (200, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
