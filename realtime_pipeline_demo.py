@@ -179,7 +179,8 @@ class AnalysisThread(Thread):
                         print("Failed to open video capture for BC")
                         continue
 
-                    signal = bc.process_realtime(capture)
+                    # signal = bc.process_realtime(capture)
+                    signal = bc.process(capture)
 
                     capture.release()
 
@@ -404,13 +405,13 @@ class RealtimePipelineDemo:
                     self.collected_frames.append(frame.copy())
                     if len(self.collected_frames) >= self.frames_needed:
                         print("COllection complete")
-                    try:
-                        self.analysis_queue.put_nowait((self.collected_frames.copy(), self.collect_start))
-                    except:
-                        print("Analysis queue fulll")
+                        try:
+                            self.analysis_queue.put_nowait((self.collected_frames.copy(), self.collect_start))
+                        except:
+                            print("Analysis queue fulll")
 
-                    self.collecting = False
-                    self.collected_frames = []
+                        self.collecting = False
+                        self.collected_frames = []
 
 
                 try:
