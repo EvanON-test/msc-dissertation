@@ -15,30 +15,30 @@ def load_model():
     global preloaded_interpreter
     global preloaded_input_details
     global preloaded_output_details
-    print("Loading Keypoint Detector model...")
+    print("KEYPOINT UTIL: Loading Keypoint Detector model...")
     try:
         preloaded_interpreter = tflite.Interpreter(model_path=
         "./processing/keypoint_detector/models/32_4000_197.07_14.11.04.512680.tflite")
         preloaded_interpreter.allocate_tensors()
         preloaded_input_details = preloaded_interpreter.get_input_details()
         preloaded_output_details = preloaded_interpreter.get_output_details()
-        print("Model loaded")
+        print("KEYPOINT UTIL: Model loaded")
     except Exception as e:
-        print("Preloading KD failed due to: " + str(e))
+        print("KEYPOINT UTIL: Preloading KD failed due to: " + str(e))
 
 #Unloads model using global variables
 def unload_model():
     global preloaded_interpreter
     global preloaded_input_details
     global preloaded_output_details
-    print("Unloading Keypoint Detector model...")
+    print("KEYPOINT UTIL: Unloading Keypoint Detector model...")
     try:
         preloaded_interpreter = None
         preloaded_input_details = None
         preloaded_output_details = None
-        print("Model Unloaded")
+        print("KEYPOINT UTIL: Model Unloaded")
     except Exception as e:
-        print("Unloading KD failed due to: " + str(e))
+        print("KEYPOINT UTIL: Unloading KD failed due to: " + str(e))
 
 
 def process(frames):

@@ -18,30 +18,30 @@ def load_model():
     global preloaded_interpreter
     global preloaded_input_details
     global preloaded_output_details
-    print("Loading Object Detector model...")
+    print("OD UTIL: Loading Object Detector model...")
     try:
         preloaded_interpreter = tflite.Interpreter(
             model_path="./processing/object_detector/best-expanded.tflite")
         preloaded_interpreter.allocate_tensors()
         preloaded_input_details = preloaded_interpreter.get_input_details()
         preloaded_output_details = preloaded_interpreter.get_output_details()
-        print("OD Model loaded")
+        print("OD UTIL: OD Model loaded")
     except Exception as e:
-        print("Preloading OD failed due to: " + str(e))
+        print("OD UTIL: Preloading OD failed due to: " + str(e))
 
 #Unloads model using global variables
 def unload_model():
     global preloaded_interpreter
     global preloaded_input_details
     global preloaded_output_details
-    print("Unloading Object Detector model...")
+    print("OD UTIL: Unloading Object Detector model...")
     try:
         preloaded_interpreter = None
         preloaded_input_details = None
         preloaded_output_details = None
-        print("OD Model Unloaded")
+        print("OD UTIL: OD Model Unloaded")
     except Exception as e:
-        print("Unloading OD failed due to: " + str(e))
+        print("OD UTIL: Unloading OD failed due to: " + str(e))
 
 
 def process(savepoint):
@@ -119,7 +119,7 @@ def process(savepoint):
 
         # detections count check, outputs no detections statement
         if len(detections[0]) == 0:
-            print(f"No detections found for {image_name} within OD util!")
+            print(f"OD UTIL: No detections found for {image_name} within OD util!")
             continue
 
         #Wrong. nms output was xyxy
@@ -129,7 +129,7 @@ def process(savepoint):
 
         #confidence check, outputs low confidence statement
         if conf < 0.25: #Lowered from 75 to 25
-            print(f"Low confidence detection: {conf} within OD util!")
+            print(f"OD UTIL: Low confidence detection: {conf} within OD util!")
             continue
 
         ##FOR TRYING TO DEBUG PIPELINE ANNOTATIONS WITHIN A STATIC ENV (BEFORE USING IN REALTIME/DEMO)

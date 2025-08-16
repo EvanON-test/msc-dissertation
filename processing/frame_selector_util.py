@@ -22,7 +22,7 @@ preloaded_bottom_frame_selector = None
 def load_model():
     global preloaded_top_frame_selector
     global preloaded_bottom_frame_selector
-    print("Loading Frame Selector models...")
+    print("FS UTIL: Loading Frame Selector models...")
     try:
         # Loads the 'top' quality model
         top_frame_selector = {}
@@ -47,21 +47,21 @@ def load_model():
 
         preloaded_top_frame_selector = top_frame_selector
         preloaded_bottom_frame_selector = bottom_frame_selector
-        print("Model loaded")
+        print("FS UTIL: Model loaded")
     except Exception as e:
-        print("Preloading OD failed due to: " + str(e))
+        print("FS UTIL: Preloading OD failed due to: " + str(e))
 
 #Unloads model using global variables
 def unload_model():
     global preloaded_top_frame_selector
     global preloaded_bottom_frame_selector
-    print("Unloading Frame Selector model...")
+    print("FS UTIL: Unloading Frame Selector model...")
     try:
         preloaded_top_frame_selector = None
         preloaded_bottom_frame_selector = None
-        print("FS Model Unloaded")
+        print("FS UTIL: FS Model Unloaded")
     except Exception as e:
-        print("Unloading FS failed due to: " + str(e))
+        print("FS UTIL: Unloading FS failed due to: " + str(e))
 
 
 #downscales the original image (1280x720) to the lower res values defined above
@@ -120,7 +120,7 @@ def process(signal, video):
     # check loaded
     success, image = video.read()
     if not success:
-        print("\nERROR\n")
+        print("\nFS UTIL: ERROR\n")
         sys.exit()
 
     total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -196,7 +196,7 @@ def process_realtime(signal, video):
     # check loaded
     success, image = video.read()
     if not success:
-        print("\nERROR\n")
+        print("\nFS UTIL: ERROR\n")
         sys.exit()
 
     total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
