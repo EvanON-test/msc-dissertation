@@ -275,13 +275,13 @@ class RealtimePipelineDemo:
         #Metrics output
         self.jetson = jtop()
 
-        #TODO: test slight increases
+        #TODO: test slight decreases
         #Object detection thread
-        self.detection_queue = Queue(maxsize=3)
-        self.result_queue = Queue(maxsize=8)
+        self.detection_queue = Queue(maxsize=1) #3
+        self.result_queue = Queue(maxsize=2) #8
         self.detection_thread = ObjectDetectorThread(self.detection_queue, self.result_queue)
 
-        self.analysis_queue = Queue(maxsize=2)
+        self.analysis_queue = Queue(maxsize=1) #2
         self.analysis_thread = AnalysisThread(self.analysis_queue, self.detection_queue)
 
         self.collecting = False
