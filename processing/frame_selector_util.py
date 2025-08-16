@@ -254,9 +254,9 @@ def process_realtime(signal, video):
         #Next frame
         success, image = video.read()
 
-    # if in_contig:
-    #     best_frames[0].append(current_best_t)
-    #     best_frames[1].append(current_best_b)
+    if in_contig:
+        best_frames[0].append(current_best_t)
+        best_frames[1].append(current_best_b)
 
     # # unload models after use
     # del top_frame_selector
