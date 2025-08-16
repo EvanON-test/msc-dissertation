@@ -451,12 +451,12 @@ class RealtimePipelineDemo:
                 cv2.putText(display_frame, status, (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
 
                 if not self.analysis_queue.empty():
-                    cv2.putText(display_frame, "ANALZYING FRAMES...", (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
+                    cv2.putText(display_frame, "ANALYZING FRAMES...", (200, 200), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
 
                 if not self.detection_queue.empty():
-                    cv2.putText(display_frame, "DETECTING OBJECT", (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
+                    cv2.putText(display_frame, "DETECTING OBJECT", (200, 220), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
 
-                cv2.putText(display_frame, f"DETECTION COUNT: {self.detection_count}", (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
+                cv2.putText(display_frame, f"DETECTION COUNT: {self.detection_count}", (200, 240), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
 
                 hardware_metrics = self.get_metrics()
                 if frame_counter % self.process_every_n_frames == 0:
