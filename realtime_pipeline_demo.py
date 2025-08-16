@@ -179,10 +179,10 @@ class AnalysisThread(Thread):
                         print("Failed to open video capture for BC")
                         continue
 
-                    # signal = bc.process_realtime(capture)
-                    signal = bc.process(capture)
+                    signal = bc.process_realtime(capture)
+                    # signal = bc.process(capture)
 
-                    capture.release()
+                    # capture.release()
 
                     print(f"Binary Classifier returned: {signal}")
                     print(f"Binary Classifier signal length: {len(signal)}")
@@ -195,7 +195,7 @@ class AnalysisThread(Thread):
 
                     print("Attempting Frame Selection...")
 
-                    capture = cv2.VideoCapture(temp_video)
+                    # capture = cv2.VideoCapture(temp_video)
 
                     if not capture.isOpened():
                         print("Failed to open video capture for BC")
