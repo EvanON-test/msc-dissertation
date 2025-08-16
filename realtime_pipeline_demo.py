@@ -265,7 +265,6 @@ class RealtimePipelineDemo:
         #Stores previous frame for use in motion detection
         self.previous_frame = None
         #Minimum level, percentage, above which motion detection function is triggered
-        #TODO: test from 15 to higher
         self.detection_minimum = 15
 
         self.detection_count = 0
@@ -275,9 +274,10 @@ class RealtimePipelineDemo:
         #Metrics output
         self.jetson = jtop()
 
+        #TODO: test slight increases
         #Object detection thread
-        self.detection_queue = Queue(maxsize=2)
-        self.result_queue = Queue(maxsize=6)
+        self.detection_queue = Queue(maxsize=3)
+        self.result_queue = Queue(maxsize=8)
         self.detection_thread = ObjectDetectorThread(self.detection_queue, self.result_queue)
 
         self.analysis_queue = Queue(maxsize=2)
@@ -286,7 +286,7 @@ class RealtimePipelineDemo:
         self.collecting = False
         self.collected_frames = []
         self.collect_start = 0
-        self.frames_needed = 15
+        self.frames_needed = 45
 
 
     def get_metrics(self):
@@ -438,6 +438,7 @@ class RealtimePipelineDemo:
                 except Exception as e:
                     print(f"REALTIME PIPELINE: Detection Queue empty. Further Details: {e}")
 
+                #TODO: not sure if needed now (think it was just bb relevance) test removal later
                 if self.detection_age < 25:
                     detection_text = f"REALTIME PIPELINE: Detection: {self.detection_confidence:.2f}"
                     cv2.putText(display_frame, detection_text, (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
