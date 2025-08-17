@@ -142,7 +142,7 @@ class RealtimeMonitor(Thread):
         self.interval = 2
         self.stop_event = Event()
         #TODO: run this for 4 iterations of 30, 120 and 240 respectively
-        duration = duration
+        self.duration = duration
 
     def stop(self):
         self.stop_event.set()
@@ -159,7 +159,7 @@ class RealtimeMonitor(Thread):
 
                 start_time = time.time()
                 # This loop will run as long as the stop function has not been called, the wait length is defined by the pre-initialised interval value
-                while not self.stop_event.wait(self.interval) and time.time() < start_time + duration:
+                while not self.stop_event.wait(self.interval) and time.time() < start_time + self.duration:
                     metrics = {}
                     metrics['timestamp'] = time.strftime("%d-%m-%Y_%H-%M-%S")
                     metrics['cpu_percent'] = psutil.cpu_percent(interval=None)
