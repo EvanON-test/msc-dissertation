@@ -298,10 +298,8 @@ class RealtimePipeline:
     This includes managing the created cpature and processing threads"""
     def __init__(self, process_every_n_frames=30):
         #TODO: Gstreamer pipeline. Elaborated in notion ADD more context here when cleaning up
-        #TODO: below can be used for manual use but i have changed to video file for benchmarking
-        # self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720, framerate=45/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=2 sync=false"
-        # self.gst_stream = "filesrc location= processing/video/cbs_30s.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=2 sync=false"
-        self.gst_stream = "processing/video/cbs_30s.mp4"
+        self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720, framerate=45/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=2 sync=false"
+
         self.process_every_n_frames = process_every_n_frames
 
         # self.detection_box = None
@@ -406,8 +404,7 @@ class RealtimePipeline:
 
         try:
             # Initialises camera capture utilising Gstreamer approach
-            # capture = cv2.VideoCapture(self.gst_stream, cv2.CAP_GSTREAMER)
-            capture = cv2.VideoCapture(self.gst_stream)
+            capture = cv2.VideoCapture(self.gst_stream, cv2.CAP_GSTREAMER)
             # Verifies camera opened succesfully
             if not capture.isOpened():
                 print("REALTIME PIPELINE: GST Stream failed to open.")
