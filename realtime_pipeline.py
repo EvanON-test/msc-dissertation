@@ -407,14 +407,10 @@ class RealtimePipeline:
                 print(f"REALTIME PIPELINE: Pipeline: {self.gst_stream}")
                 return
 
-            # extracts the cameras properties
-            width = capture.get(cv2.CAP_PROP_FRAME_WIDTH)
-            height = capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
             frame_counter = 0
             fps_frame_counter = 0
             fps_timer_start = cv2.getTickCount()
-            current_fps = 0.0
 
             print(f"REALTIME PIPELINE: Camera initialised successfully.")
             print(f"REALTIME PIPELINE: Processing every {self.process_every_n_frames} frames.")
@@ -440,7 +436,6 @@ class RealtimePipeline:
                 if fps_frame_counter >= 30:
                     fps_timer_end = cv2.getTickCount()
                     elapsed_time = (fps_timer_end - fps_timer_start) / cv2.getTickFrequency()
-                    current_fps = fps_frame_counter / elapsed_time
                     fps_timer_start = cv2.getTickCount()
                     fps_frame_counter = 0
 
