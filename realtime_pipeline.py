@@ -135,14 +135,14 @@ class ObjectDetectorThread(Thread):
                 print(f"OD THREAD: Error in Object Detection Thread: {e}")
 
 class RealtimeMonitor(Thread):
-    def __init__(self, output_file, jetson):
+    def __init__(self, output_file, jetson, duration):
         super().__init__()
         self.output_file = output_file
         self.jetson = jetson
         self.interval = 2
         self.stop_event = Event()
         #TODO: run this for 4 iterations of 30, 120 and 240 respectively
-        self.duration = 30
+        duration = duration
 
     def stop(self):
         self.stop_event.set()
@@ -159,12 +159,12 @@ class RealtimeMonitor(Thread):
 
                 start_time = time.time()
                 # This loop will run as long as the stop function has not been called, the wait length is defined by the pre-initialised interval value
-                while not self.stop_event.wait(self.interval) and time.time() < start_time + self.duration:
+                while not self.stop_event.wait(self.interval) and time.time() < start_time + duration:
                     metrics = {}
                     metrics['timestamp'] = time.strftime("%d-%m-%Y_%H-%M-%S")
                     metrics['cpu_percent'] = psutil.cpu_percent(interval=None)
                     metrics['cpu_temp'] = self.jetson.temperature.get('CPU').get('temp')
-                    #NOT needed as of now
+                    #NOT needed as of now (introduce once utilise engine)
                     # metrics['gpu_percent'] = self.jetson.stats.get['GPU']
                     metrics['gpu_percent'] = "0.0"
                     metrics['gpu_temp'] = self.jetson.temperature.get('GPU').get('temp')
@@ -335,11 +335,12 @@ class RealtimePipeline:
         self.last_detection_time = 0
         self.detection_cooldown = 5
 
+        self.duration = 30
         output_directory = "benchmark/"
         os.makedirs(output_directory, exist_ok=True)
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
-        monitor_filename = os.path.join(output_directory, f"realtime_{timestamp}.csv")
-        self.hardware_monitor = RealtimeMonitor(monitor_filename, self.jetson)
+        monitor_filename = os.path.join(output_directory, f"{timestamp}_realtime_{self.duration}.csv")
+        self.hardware_monitor = RealtimeMonitor(monitor_filename, self.jetson, self.duration)
 
 
     def get_metrics(self):
@@ -385,9 +386,11 @@ class RealtimePipeline:
        #Checks if the percentage greater than minimum (currently 30) and returns boolean
         if movement_percentage > self.detection_minimum:
             print(f"REALTIME PIPELINE: Detected motion: {movement_percentage:.2f}%")
+            print(f"REALTIME PIPELINE: Detection Count: {self.detection_count}")
             return True
         else:
             print(f"REALTIME PIPELINE: Not significant motion: {movement_percentage:.2f}%")
+            print(f"REALTIME PIPELINE: Detection Count: {self.detection_count}")
             return False
 
 
