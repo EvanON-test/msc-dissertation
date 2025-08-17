@@ -176,7 +176,7 @@ class RealtimeMonitor(Thread):
                     metrics['power_used'] = "N/A"
 
                     writer.writerow(metrics)
-                print(f"BENCHMARKING RUN FINISHED FOR: {self.duration} ITERATION")
+                print(f"\nBENCHMARKING RUN FINISHED FOR: {self.duration} ITERATION")
 
         except Exception as e:
             print("REALTIME MONITOR THREAD: Error occurred due to: " + str(e))
