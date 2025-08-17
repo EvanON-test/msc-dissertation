@@ -338,7 +338,7 @@ class RealtimePipeline:
         self.detection_cooldown = 3
 
         #TODO: after ever 4 runs change this to 120 and then 240
-        self.duration = 30
+        self.duration = 120
 
 
         output_directory = "benchmark/"
