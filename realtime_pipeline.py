@@ -334,7 +334,8 @@ class RealtimePipeline:
         self.frames_needed = 30
 
         self.last_detection_time = 0
-        self.detection_cooldown = 5
+        #TODO: test a 3 second version
+        self.detection_cooldown = 3
 
         #TODO: after ever 4 runs change this to 120 and then 240
         self.duration = 30
