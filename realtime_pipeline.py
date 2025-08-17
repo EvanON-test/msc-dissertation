@@ -165,7 +165,7 @@ class RealtimeMonitor(Thread):
                     metrics['cpu_percent'] = psutil.cpu_percent(interval=None)
                     metrics['cpu_temp'] = self.jetson.temperature.get('CPU').get('temp')
                     # TODO: try to access gpu
-                    metrics['gpu_percent'] = self.jetson.stats['GPU']
+                    metrics['gpu_percent'] = self.jetson.stats.get['GPU']
                     metrics['gpu_temp'] = self.jetson.temperature.get('GPU').get('temp')
                     # gets the nano metrics using the jtop service object
                     metrics['cpu_temp'] = self.jetson.temperature.get('CPU').get('temp')
