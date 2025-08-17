@@ -282,6 +282,9 @@ class RealtimePipeline:
         self.collect_start = 0
         self.frames_needed = 30
 
+        self.last_detection_time = 0
+        self.detection_cooldown = 5
+
 
     def get_metrics(self):
         """Gathers metrics that have common access approaches in both devices and the specific device"""
@@ -389,11 +392,20 @@ class RealtimePipeline:
                     except Exception as e:
                         print(f"REALTIME PIPELINE: Error detecting motion: {e}")
                         motion_detected = False
-                    if motion_detected and not self.collecting:
+
+                    current_time = time.time()
+                    time_since_last_detection = current_time - self.last_detection_time
+
+                    if motion_detected and not self.collecting and time_since_last_detection > self.detection_cooldown:
                         print("REALTIME PIPELINE: Motion Detected starting to collect")
                         self.collecting = True
                         self.collected_frames = []
                         self.collect_start = frame_counter
+                        self.last_detection_time = current_time
+                        print(
+                            f"REALTIME PIPELINE: Starting Motion detection cooldown period of {self.detection_cooldown} seconds.")
+                    elif motion_detected and time_since_last_detection <= self.detection_cooldown:
+                        print("REALTIME PIPELINE: In Motion detection cooldown period.")
 
                 if self.collecting:
                     self.collected_frames.append(frame.copy())
