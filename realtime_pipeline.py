@@ -176,7 +176,7 @@ class RealtimeMonitor(Thread):
                     metrics['power_used'] = "N/A"
 
                     writer.writerow(metrics)
-                print(f"BENCHMARKING RUN FINISHED FOR: {duration:.2f} ITERATION")
+                print(f"BENCHMARKING RUN FINISHED FOR: {self.duration} ITERATION")
 
         except Exception as e:
             print("REALTIME MONITOR THREAD: Error occurred due to: " + str(e))
@@ -335,7 +335,10 @@ class RealtimePipeline:
         self.last_detection_time = 0
         self.detection_cooldown = 5
 
+        #TODO: after ever 4 runs change this to 120 and then 240
         self.duration = 30
+
+
         output_directory = "benchmark/"
         os.makedirs(output_directory, exist_ok=True)
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
@@ -343,21 +346,21 @@ class RealtimePipeline:
         self.hardware_monitor = RealtimeMonitor(monitor_filename, self.jetson, self.duration)
 
 
-    def get_metrics(self):
-        """Gathers metrics that have common access approaches in both devices and the specific device"""
-        metrics = {}
-        try:
-            metrics['cpu_percent'] = psutil.cpu_percent(interval=None)
-            memory = psutil.virtual_memory()
-            metrics['ram_percent'] = memory.percent
-            # gets the nano metrics using the jtop service object
-            metrics['cpu_temp'] = self.jetson.temperature.get('CPU').get('temp')
-            metrics['gpu_temp'] = self.jetson.temperature.get('GPU').get('temp')
-            # Power metrics not possible on this iteration of NVIDIA's device
-            # metrics['power_used'] = "N/A"
-        except Exception as e:
-            print(f"Error getting metrics: {e}")
-        return metrics
+    # def get_metrics(self):
+    #     """Gathers metrics that have common access approaches in both devices and the specific device"""
+    #     metrics = {}
+    #     try:
+    #         metrics['cpu_percent'] = psutil.cpu_percent(interval=None)
+    #         memory = psutil.virtual_memory()
+    #         metrics['ram_percent'] = memory.percent
+    #         # gets the nano metrics using the jtop service object
+    #         metrics['cpu_temp'] = self.jetson.temperature.get('CPU').get('temp')
+    #         metrics['gpu_temp'] = self.jetson.temperature.get('GPU').get('temp')
+    #         # Power metrics not possible on this iteration of NVIDIA's device
+    #         # metrics['power_used'] = "N/A"
+    #     except Exception as e:
+    #         print(f"Error getting metrics: {e}")
+    #     return metrics
 
 
 
@@ -503,9 +506,9 @@ class RealtimePipeline:
 
 
 
-                hardware_metrics = self.get_metrics()
-                if frame_counter % self.process_every_n_frames == 0:
-                    hardware_metrics = self.get_metrics()
+                # hardware_metrics = self.get_metrics()
+                # if frame_counter % self.process_every_n_frames == 0:
+                #     hardware_metrics = self.get_metrics()
                 #builds an overlay string to be displayed
 
 
