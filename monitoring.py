@@ -179,7 +179,6 @@ class Monitoring:
             monitor.stop()
 
 
-
 if __name__ == "__main__":
     # monitoring = Monitoring()
     # monitoring.run('processing/video')

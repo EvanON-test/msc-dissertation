@@ -3,6 +3,8 @@
 #TODO: test with 60, 30, 15 etc various levels for basic performance understanding
 import queue
 import time
+from fileinput import filename
+
 import numpy as np
 import cv2
 import sys
@@ -16,8 +18,6 @@ import platform
 import psutil
 from queue import Queue
 import tempfile
-
-
 
 #Utilised try bocks to allow for failure, due to the wrong hardware
 #jtop is a nano specific library for accessing hardware metrics
@@ -131,6 +131,50 @@ class ObjectDetectorThread(Thread):
                 continue
             except Exception as e:
                 print(f"OD THREAD: Error in Object Detection Thread: {e}")
+
+class RealtimeMonitor(Thread):
+    def __init__(self, output_file, jetson):
+        super().__init__()
+        self.output_file = output_file
+        self.jetson = jetson
+        self.interval = 2
+        self.stop_event = Event()
+
+    def stop(self):
+        self.stop_event.set()
+
+    def run(self):
+        """Contains the main monitoring loop, opens the csv, accesses the metrics and writes them into the csvfile"""
+        try:
+            with open(self.output_file, 'w') as csvfile:
+                # Defines the column headers in the resultant csv file
+                fieldnames = ['timestamp', 'cpu_percent', 'cpu_temp', 'gpu_percent', 'gpu_temp',
+                              'ram_percent', 'power_used']
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writeheader()
+
+
+                # This loop will run as long as the stop function has not been called, the wait length is defined by the pre-initialised interval value
+                while not self.stop_event.wait(self.interval):
+                    metrics = {}
+                    metrics['timestamp'] = time.strftime("%d-%m-%Y_%H-%M-%S")
+                    metrics['cpu_percent'] = psutil.cpu_percent(interval=None)
+                    metrics['cpu_temp'] = self.jetson.temperature.get('CPU').get('temp')
+                    #TODO: try to access gpu after
+                    #metrics['gpu_percent'] = self.jetson
+                    metrics['gpu_temp'] = self.jetson.temperature.get('GPU').get('temp')
+                    # gets the nano metrics using the jtop service object
+                    metrics['cpu_temp'] = self.jetson.temperature.get('CPU').get('temp')
+                    memory = psutil.virtual_memory()
+                    metrics['ram_percent'] = memory.percent
+                    # Power metrics not possible on this iteration of NVIDIA's device
+                    metrics['power_used'] = "N/A"
+
+                    writer.writerow(metrics)
+
+        except Exception as e:
+            print("REALTIME MONITOR THREAD: Error occurred due to: " + str(e))
+
 
 
 class AnalysisThread(Thread):
@@ -285,6 +329,12 @@ class RealtimePipeline:
         self.last_detection_time = 0
         self.detection_cooldown = 5
 
+        output_directory = "benchmark/"
+        os.makedirs(output_directory, exist_ok=True)
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
+        monitor_filename = os.path.join(output_directory, f"realtime_{timestamp}.csv")
+        self.hardware_monitor = RealtimeMonitor(monitor_filename, self.jetson)
+
 
     def get_metrics(self):
         """Gathers metrics that have common access approaches in both devices and the specific device"""
@@ -366,6 +416,7 @@ class RealtimePipeline:
 
             self.detection_thread.start()
             self.analysis_thread.start()
+            self.hardware_monitor.start()
 
             # The main loop, continues until quit
             while True:
@@ -465,6 +516,9 @@ class RealtimePipeline:
             od.unload_model()
             if self.jetson:
                 self.jetson.close()
+            if self.hardware_monitor.is_alive():
+                self.hardware_monitor.stop()
+                self.hardware_monitor.join()
             if self.detection_thread.is_alive():
                 self.detection_thread.stop()
                 self.detection_thread.join()
