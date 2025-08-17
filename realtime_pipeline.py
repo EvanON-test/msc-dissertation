@@ -19,6 +19,8 @@ import psutil
 from queue import Queue
 import tempfile
 
+from google.protobuf import duration
+
 #Utilised try bocks to allow for failure, due to the wrong hardware
 #jtop is a nano specific library for accessing hardware metrics
 try:
@@ -139,6 +141,8 @@ class RealtimeMonitor(Thread):
         self.jetson = jetson
         self.interval = 2
         self.stop_event = Event()
+        #TODO: run this for 4 iterations of 30, 120 and 240 respectively
+        self.duration = 30
 
     def stop(self):
         self.stop_event.set()
@@ -153,15 +157,15 @@ class RealtimeMonitor(Thread):
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
 
-
+                start_time = time.time()
                 # This loop will run as long as the stop function has not been called, the wait length is defined by the pre-initialised interval value
-                while not self.stop_event.wait(self.interval):
+                while not self.stop_event.wait(self.interval) and time.time() < start_time + self.duration:
                     metrics = {}
                     metrics['timestamp'] = time.strftime("%d-%m-%Y_%H-%M-%S")
                     metrics['cpu_percent'] = psutil.cpu_percent(interval=None)
                     metrics['cpu_temp'] = self.jetson.temperature.get('CPU').get('temp')
-                    #TODO: try to access gpu after
-                    #metrics['gpu_percent'] = self.jetson
+                    # TODO: try to access gpu
+                    metrics['gpu_percent'] = self.jetson.stats['GPU'].get('percent')
                     metrics['gpu_temp'] = self.jetson.temperature.get('GPU').get('temp')
                     # gets the nano metrics using the jtop service object
                     metrics['cpu_temp'] = self.jetson.temperature.get('CPU').get('temp')
@@ -171,6 +175,7 @@ class RealtimeMonitor(Thread):
                     metrics['power_used'] = "N/A"
 
                     writer.writerow(metrics)
+                print(f"BENCHMARKING RUN FINISHED FOR: {duration:.2f} ITERATION")
 
         except Exception as e:
             print("REALTIME MONITOR THREAD: Error occurred due to: " + str(e))
