@@ -188,8 +188,11 @@ def process_realtime(frame):
     x1, y1, x2, y2, conf, class_index = non_max_suppression(y[0])[0][0]
 
     # confidence check, outputs low confidence statement
-    if conf < 0.25:  # Lowered from 75 to 25
+    if conf < 0.75:  # Lowered from 75 to 25
         print(f"OD UTIL: Low confidence detection: {conf} within OD util!")
+
+    print(f"OD UTILE: Class Index should be 0 (crab) or 1 (Lobster)")
+    print(f"OD UTIL: CLASS INDEX: {int(class_index)}")
 
 
     # print(x1, y1, x2, y2)

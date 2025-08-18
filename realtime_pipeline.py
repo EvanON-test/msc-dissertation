@@ -134,6 +134,7 @@ class ObjectDetectorThread(Thread):
             except Exception as e:
                 print(f"OD THREAD: Error in Object Detection Thread: {e}")
 
+#TODO: comment this out (and all attributed code) after running the benchmarks
 class RealtimeMonitor(Thread):
     def __init__(self, output_file, jetson, duration):
         super().__init__()
@@ -176,7 +177,7 @@ class RealtimeMonitor(Thread):
                     metrics['power_used'] = "N/A"
 
                     writer.writerow(metrics)
-                print(f"\nBENCHMARKING RUN FINISHED FOR: {self.duration} SECOND VERSION\n")
+                print(f"\nREALTIME MONITOR THREAD: BENCHMARKING RUN FINISHED FOR: {self.duration} SECOND VERSION\n")
 
         except Exception as e:
             print("REALTIME MONITOR THREAD: Error occurred due to: " + str(e))
