@@ -339,7 +339,7 @@ class RealtimePipeline:
         self.detection_cooldown = 3
 
         #TODO: after ever 4 runs change this to 120 and then 240
-        self.duration = 120
+        self.duration = 240
 
 
         output_directory = "benchmark/"
@@ -497,7 +497,7 @@ class RealtimePipeline:
                                 saving_thread.start()
 
                                 #TODO: test wait
-                                time.sleep(3)
+
                             except Exception as e:
                                 print(f'REALTIME PIPELINE: ERROR while implementing SaveDetectionThread: {e}')
                             # clean memory
