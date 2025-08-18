@@ -100,6 +100,12 @@ def process(savepoint):
 
         x1, y1, x2, y2, conf, class_index = non_max_suppression(y[0])[0][0]
 
+        if conf < 0.75:  # Lowered from 75 to 25
+            print(f"OD UTIL: Low confidence detection: {conf} within OD util!")
+
+        print(f"OD UTILE: Class Index should be 0 (crab) or 1 (Lobster)...?")
+        print(f"OD UTIL: CLASS INDEX: {int(class_index)}")
+
         # print(x1, y1, x2, y2)
         # x1, y1, x2, y2 = x1*scale, y1*scale, x2*scale, y2*scale
         x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
@@ -191,7 +197,7 @@ def process_realtime(frame):
     if conf < 0.75:  # Lowered from 75 to 25
         print(f"OD UTIL: Low confidence detection: {conf} within OD util!")
 
-    print(f"OD UTILE: Class Index should be 0 (crab) or 1 (Lobster)")
+    print(f"OD UTILE: Class Index should be 0 (crab) or 1 (Lobster)...?")
     print(f"OD UTIL: CLASS INDEX: {int(class_index)}")
 
 
