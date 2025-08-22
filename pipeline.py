@@ -29,7 +29,10 @@ class Pipeline:
 
     def run(self, data_path="processing/video", monitor=None, runs=1):
         """
-        Main function to execute the pipeline. Handles two modes: normal mode  and a benchmarking mode.
+        Main function to execute the pipeline. Handles two modes: normal mode and a benchmarking mode.
+
+        Normal: checks for absence of monitor and processes each of files in path 1 time
+        Benchmarking: checks for presence of monitor and will process each of the files in path 'n' times base on 'runs' user input
         """
 
         try:
@@ -41,7 +44,7 @@ class Pipeline:
             completed_files = []
 
         # NOTE: THIS ONLY WORKS AS INTENDED WHEN THERE IS A SINGULAR FILE PRESENT
-        # NORMAL MODE: A simple loop approach that processes each file in the directory, that isn't already in completed files, 1 time.
+        # NORMAL MODE: A approach that checks for absence of monitor instance before processing each file in the directory, that isn't already in completed files, 1 time.
         # A record is then added to the completed files.
         if monitor is None:
             for filename in os.listdir(data_path):
@@ -57,7 +60,7 @@ class Pipeline:
             print("\nProcessed all available Files!!\n")
 
         # BENCHMARKING MODE: A simple loop approach to process the file/s (singular currently) relevant to the user inputted run value.
-        # (Benchmarking was runs for 1, 4 and 8 loops)
+        # (Benchmarking was for 1, 4 and 8 runs)
         else:
             run_count = 0
             while run_count < runs:
@@ -66,12 +69,15 @@ class Pipeline:
                     self.process(data_path + '/' + filename, monitor)
                     print(f"\nProcessed {filename} for Run: {run_count}/{runs}\n")
                     run_count += 1
-            print(f"\nFinished processing for a total of: {runs}\n")
+            print(f"\nFinished processing for a total of: {runs} of {runs}\n")
 
 
 
     def process(self, video_path, monitor=None):
-        """This is the core processing Pipeline"""
+        """This is the Main function that defines the four stage processing pipeline.
+
+          Binary classifier (bc) -> Frame Selector (fs) -> Object Detector (od) -> Keypoint Detector (kd)
+          """
 
         #start timer for calculating final runtime
         start_time = time.time()
@@ -157,8 +163,8 @@ class Pipeline:
         print(coordinates.shape)
         pipeline_time = time.time() - start_time
 
-        #MODELS END
 
+        #MODELS END
 
 
         print("\nFinished!\nPipeline took {} seconds to process \"{}\"".format(
@@ -177,9 +183,12 @@ class Pipeline:
 
 
 if __name__ == "__main__":
+    #sets up the command line argument parsing
     parser = argparse.ArgumentParser(description='Run a CV pipeline on saved video files')
     parser.add_argument("--data_path", type=str, default="processing/video" ,help="Path to folder holding video files")
     parser.add_argument("--runs", type=int, default=1 ,help="Number of runs to run the pipeline for") #Hangover from monitoring really but will keep for now
+
+    #parses argument and executes pipeline
     args = parser.parse_args()
     pipeline = Pipeline()
     pipeline.run(data_path=args.data_path, runs=args.runs)

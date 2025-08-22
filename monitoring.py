@@ -1,17 +1,6 @@
-#Maybe Later
-#TODO: Add the whole timings of the run to the csv. (use the basic format already in pipeline)
-
-#Definetly do SOON
-#TODO:include actual amount for cpu and ram?
-#TODO: tidy comments please
-
-
-import numpy as np
+#Import statements for required modules
 import time
-import cv2
 import os
-
-from pipeline import Pipeline
 import platform
 import psutil
 import csv
@@ -19,83 +8,100 @@ import datetime
 from threading import Thread, Event
 import argparse
 
-#Utilised try bocks to allow for failure, due to the wrong hardware
+#Import statement for custom pipeline module
+from pipeline import Pipeline
+
+#Try bocks for import statements for modules that could cause failure
+
 #jtop is a nano specific library for accessing hardware metrics
 try:
     from jtop import jtop
 except ImportError:
     jtop = None
 
-#gpiozero provides CPU temperature on the Pi's.
+#gpiozero provides CPU temperature on the raspberry pi.
 try:
     from gpiozero import CPUTemperature
 except ImportError:
     CPUTemperature = None
 
 
-"""NOTE:I have focused on an inheritance based approach. BaseMonitor is a subclass of the Thread class, thus allowing it the functionality to operate as a new Thread.
-PiMonitor and NanoMonitor are subclasses of BaseMonitor thus allowing them to extend the functionality of the BaseMonitor more specifically based on their underlying hardware"""
+
 
 class BaseMonitor(Thread):
-    """Parent of the hardware monitoring classes. It handles the functions common to both of the edge
-    devices. It inherits Thread in an aid to run as part of a separate thread to the processing"""
+    """Base class of the hardware monitoring classes. It handles the functions common to both of the edge
+    devices and inherits Thread in an aid to run as part of a separate thread to the processing"""
+
     def __init__(self, output_file):
+        """Initialises the base monitoring system"""
         #constructor of the parent Thread class
         super().__init__()
+        #outputfile for csv logging of metrics
         self.output_file = output_file
         #hardcoded interval (in seconds), to be used as time between each log entry
         self.interval = 2
-        #creates a threading event that is needed to stop the thread externaly
+        #creates a threading event that is needed to stop the thread externally
         self.stop_event = Event()
+        #current stage allows the tracking of the stage for csv logging, this equates to moe detailed data
         self.current_stage = None
 
 
 
     def run(self):
-        """Contains the main monitoring loop, opens the csv, accesses the metrics and writes them into the csvfile"""
+        """This is the main monitoring loop. It opens the csv, accesses the metrics and writes them into the csvfile"""
         try:
             with open(self.output_file, 'w') as csvfile:
-                #Defines the column headers in the resultant csv file
+                #Defines the fieldnames, which are to be the column headers in the resultant csv file.
                 fieldnames = ['timestamp', 'model_stage','cpu_percent', 'cpu_temp', 'gpu_percent', 'gpu_temp', 'ram_percent', 'power_used']
+                #creats a csv writer object and writes fieldnames into the header row to the csv
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
 
-                #This loop will run as long as the stop function has not been called, the wait length is defined by the pre-initialised interval value
+                #While loop that runs until stop event and at an interval defined by the pre-initialised interval value
                 while not self.stop_event.wait(self.interval):
+                    #collects the hardware metrics via the get metrics function
                     hardware_metrics = self.get_metrics()
+                    #Adds the current timestamp as a value to timestamp key
                     hardware_metrics['timestamp'] = time.strftime("%d-%m-%Y_%H-%M-%S")
+                    #Adds the current model stage as a value to model_stage key
                     hardware_metrics['model_stage'] = self.current_stage
+                    #writes the singular metric run ot the csv file in one row. Iterating each key value pair of the dictionary
                     log_data = hardware_metrics
                     writer.writerow(log_data)
         except Exception as e:
             print("Error occurred in the monitoring thread as: " + str(e))
 
     def stop(self):
-        """Stops the monitoring thread (through breaking the while loop in the Run function)"""
+        """Defines the stop function for the monitoring thread (by breaking the while loop in the run function)"""
         self.stop_event.set()
 
     def get_metrics(self):
         """Gathers metrics that have common access approaches in both devices"""
+        #Initilises an empty dictionary
         metrics = {}
+        # Adds the current CPU utilisation percentage as a value to cpu_percent key
         metrics['cpu_percent'] = psutil.cpu_percent(interval=None)
+        # Adds the current RAM utilisation percentage as a value to ram_percent key
         memory = psutil.virtual_memory()
         metrics['ram_percent'] = memory.percent
+        #Returns metrics dictionary
         return metrics
 
 
 
 
 class PiMonitor(BaseMonitor):
-    """Child class of the BaseMonitor class. Extends the BaseMonitor class with functionality specific to the Raspberry Pi"""
+    """Raspberry Pi specific implementation of the BaseMonitor class. Extending it with hardware specific functionality"""
+
     def get_metrics(self):
-        """Gathers metrics that have common access approaches in both devices and the specific device"""
+        """Inherits the capabilities of the parent class. Extends with a pi specific implementation to gather temperatures"""
         #Gets the common metrics
         metrics = super().get_metrics()
-        #Uses pi specific approach to get cpu temperature
+        #creates CPUTemperature object and gets reading
         cpu_temp_pi = CPUTemperature().temperature
+        # Adds the current cpu temp, as celsius and rounded to 1sf, to cpu_temp key
         metrics['cpu_temp'] = round(cpu_temp_pi, 1)
-        #TODO: Reinvestigate the options for these later
-        #Sets the currently non-gatherable metrics to None
+        #Sets the currently non-gatherable metrics to "N/A""
         metrics['gpu_percent'] = "N/A"
         metrics['gpu_temp'] = "N/A"
         metrics['power_used'] = "N/A"
@@ -104,15 +110,17 @@ class PiMonitor(BaseMonitor):
 
 
 class NanoMonitor(BaseMonitor):
-    """Child class of BaseMonitor class. Extends the BaseMonitor class with functionality specific to the Nano."""
+    """Jetson Nano specific implementation of the BaseMonitor class. Extending it with hardware specific functionality"""
+
     def __init__(self, output_file):
+        """Initialises and extends the BaseMonitors init function. Defines jtop object needed for this class"""
         super().__init__(output_file)
-        #Creates an instance of a jtop object (which is needed to access the Nano metrics)
+        #Creates an instance of a jtop object
         self.jetson = jtop()
 
 
     def run(self):
-        """Extends the base run class by first starting the jtop service before calling the BaseMonitor run function"""
+        """Extends the BaseMonitor 'run' class. First starts the jtop service object before calling the parent 'run' function"""
         self.jetson.start()
         super().run()
         #Stops the jtop service object from running once the run has been completed
@@ -120,53 +128,68 @@ class NanoMonitor(BaseMonitor):
             self.jetson.close()
 
     def get_metrics(self):
-        """Gathers metrics that have common access approaches in both devices and the specific device"""
+        """Inherits the capabilities of the parent class. Extends with a pi specific implementation to gather temperatures"""
         # Gets the common metrics
         metrics = super().get_metrics()
-        #gets the nano metrics using the jtop service object
+        #Gets the nano metrics using the jtop service object
+        #and adds the current cpu temp and gpu temp, as celsius, to the cpu_temp and gpu_temp keys respectively
         metrics['cpu_temp'] = self.jetson.temperature.get('CPU').get('temp')
         metrics['gpu_temp'] = self.jetson.temperature.get('GPU').get('temp')
         #Power metrics not possible on this iteration of NVIDIA's device
         metrics['power_used'] = "N/A"
         return metrics
 
-#TODO: update this approach to a more general hardware approach (needed if you introduce newer Pi's to the mix)
+
 class Monitoring:
-    """Main class for running the benchmark. Checks for hardware type before running the processes """
+    """Main orchestrator class for running the monitoring system. Checks for hardware type before running the pipeline processes """
+
     def __init__(self, output_dir="benchmark/" ):
+        """Initialises the monitoring system"""
+        #defines the output directory
         self.output_dir = output_dir
 
-    def platform_type(self):
-        """Detects the hardware type"""
-        machine = platform.machine()
-        if machine == "armv7l":
-            return "pi"
-        elif machine == "aarch64":
-            return "jetson"
-        else:
-            return "unknown"
+    # def platform_type(self):
+    #     """Detects the hardware type"""
+    #     #Gets the platform machine string and assigns it to machine.
+    #     machine = platform.machine()
+    #     #checks it against he hardcoded string of what is known to be present in the pi and nano. Returns
+    #     if machine == "armv7l":
+    #         return "pi"
+    #     elif machine == "aarch64":
+    #         return "jetson"
+    #     else:
+    #         return "unknown"
 
 
     def run(self, data_path="processing/video", runs=1):
         """Runs the entire monitoring session: Creates filepath, checks platform type, starts monitoring and runs the pipeline process (which is to be monitored)
         before finally stopping the process"""
-        #Designates the output directory and generates the filename (which is the timestamp of when it is run)
-        output_dir = "benchmark/"
-        os.makedirs(output_dir, exist_ok=True)
+
+        os.makedirs(self.output_dir, exist_ok=True)
         #NOTE: The Pi has to query a server for time, thus time and date are not accurate (although it is still increments so the files are chronological regardless)
         creation_time = datetime.datetime.now()
         timestamp = creation_time.strftime("%Y-%m-%d_%H-%M")#Changed this after first working run. Should order files correctly until/if i change the time access approach
-        output_file = os.path.join(output_dir, timestamp + ".csv")
+        output_file = os.path.join(self.output_dir, timestamp + ".csv")
 
-        #Gets the platform type before checking and then creating teh appropriate monitor object
-        platform_type = self.platform_type()
-        monitor = None
-        if platform_type == "pi":
+        # monitor = None
+        machine = platform.machine()
+        if machine == "armv7l":
             monitor = PiMonitor(output_file=output_file)
-        elif platform_type == "jetson":
+        elif machine == "aarch64":
             monitor = NanoMonitor(output_file=output_file)
         else:
             print("Unknown platform type")
+            monitor = BaseMonitor(output_file=output_file)
+
+        #Gets the platform type before checking and then creating teh appropriate monitor object
+        # platform_type = self.platform_type()
+        # monitor = None
+        # if platform_type == "pi":
+        #     monitor = PiMonitor(output_file=output_file)
+        # elif platform_type == "jetson":
+        #     monitor = NanoMonitor(output_file=output_file)
+        # else:
+        #     print("Unknown platform type")
 
         #Starts the monitors background thread (the start function is inherited from parent Thread class)
         monitor.start()
