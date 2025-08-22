@@ -1,4 +1,5 @@
 #TODO: DONT FORGET TO cite the code sections you have used formally (gst, gfg etc)
+#TODO: update comments and README later (not changed since new approach)
 """
 The updated real-time implementation of the original Computer Vision Pipeline
 
@@ -130,12 +131,14 @@ class ObjectDetectorThread(Thread):
         Currently:
 
             - Loads object detector
-            -
+            - receives a frame and frame number from analysis thread's queue
+            - processes frame through object detector and assigns returned roi and confidence values
+            - puts frame, roi info, confidence and frame number into result queue
         """
 
-    def __init__(self, frame_queue, result_queue):
+    def __init__(self, detection_queue, result_queue):
         super().__init__()
-        self.frame_queue = frame_queue
+        self.detection_queue = detection_queue
         self.result_queue = result_queue
         self.running = True
 
@@ -144,18 +147,20 @@ class ObjectDetectorThread(Thread):
         self.running = False
 
     def run(self):
-        """Main processing loop for object detection. Processes frames from the input queue and placing results in
-        the output queue
+        """Main processing loop for object detection. Processes frames from the input detection queue and placing results in
+        the result output queue
         """
+        # Loads the object detection model, stops and returns an informative error message if it fails
         try:
             print("OD THREAD: Loading Object Detector...")
             od.load_model()
         except Exception as e:
             print(f"OD THREAD: Failed to load Object Detector due to: {e}")
             return
+
         while self.running:
             try:
-                frame_data = self.frame_queue.get(timeout=2)
+                frame_data = self.detection_queue.get(timeout=2)
                 if frame_data is None:
                     continue
 
@@ -286,7 +291,7 @@ class AnalysisThread(Thread):
 
 
 
-#TODO: update comments and README later (not changed since new approach)
+
 class RealtimePipelineDemo:
     """Main class for running the realtime pipeline. Orchestrates the capture, display and processing of frames.
     This includes managing the created cpature and processing threads"""
@@ -490,13 +495,6 @@ class RealtimePipelineDemo:
                 except Exception as e:
                     print(f"REALTIME PIPELINE: Detection Queue empty. Further Details: {e}")
 
-                #TODO: not sure if needed now (think it was just bb relevance) test removal later
-                #if self.detection_age < 25:
-                #     detection_text = f"REALTIME PIPELINE: Detection: {self.detection_confidence:.2f}"
-                #     cv2.putText(display_frame, detection_text, (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                #
-                #
-                #     self.detection_age += 1
 
                 status = f"REALTIME PIPELINE: Collecting frames {len(self.collected_frames)}/{self.frames_needed}"
                 cv2.putText(display_frame, status, (320, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
