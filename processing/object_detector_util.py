@@ -6,9 +6,9 @@ import time
 import cv2
 import sys
 import os
-import tensorrt as trt
-import pycuda.driver as cuda
-import pycuda.autoinit
+# import tensorrt as trt
+# import pycuda.driver as cuda
+# import pycuda.autoinit
 
 preloaded_interpreter = None
 preloaded_input_details = None
