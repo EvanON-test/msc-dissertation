@@ -290,7 +290,7 @@ class RealtimePipelineDemo:
         self.frames_needed = 30
 
         self.last_detection_time = 0
-        self.detection_cooldown = 5
+        self.detection_cooldown = 3
 
 
     def get_metrics(self):
