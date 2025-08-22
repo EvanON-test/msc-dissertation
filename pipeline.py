@@ -9,33 +9,37 @@ import processing.frame_selector_util as fs
 import processing.object_detector_util as od
 import processing.keypoint_detector_util as kd
 
-COMPLETED_FILES_LOG = "./CompletedFiles.txt"
 
 #Updated into a class based approach
 class Pipeline:
-    @staticmethod
-    def run(data_path="processing/video", monitor=None, runs=1):
+    """The amin pipeline that orchestrates the processing workflow"""
+    def __init__(self, completed_files_log="./CompletedFiles.txt", extracted_frames_dir="./processing/extracted_frames/" ):
+        self.completed_files_log = completed_files_log
+        self.extracted_frames_dir = extracted_frames_dir
+
+
+    def run(self, data_path="processing/video", monitor=None, runs=1):
         """
         Main function to run the pipeline. Allows modifications of the piepline including multiple runs,
          for benchmarking, aswell as monitoring and normal usage modes
         """
 
         try:
-            with open(COMPLETED_FILES_LOG, 'r') as cfl:
+            with open(self.completed_files_log, 'r') as cfl:
                 completed_files = [line.strip('\n') for line in cfl.readlines()]
         except FileNotFoundError:
-            with open(COMPLETED_FILES_LOG, "x"):
+            with open(self.completed_files_log, "x"):
                 pass
             completed_files = []
 
-        #THIS ONLY WORKS AS INTENDED WHEN THERE IS A SINGULAR FILE PRESENT
+        #NOTE: THIS ONLY WORKS AS INTENDED WHEN THERE IS A SINGULAR FILE PRESENT
         #A simple loop approach to process the file/s (singular currently) relevant to the user inputted run value. FOR BENCHMARKING
         if runs > 1:
             run_count = 0
             while run_count < runs:
                 for filename in os.listdir(data_path):
                     print(f"Processing {filename}. Run: {run_count}/{runs}")
-                    Pipeline.process(data_path + '/' + filename, monitor)
+                    self.process(data_path + '/' + filename, monitor)
                     print(f"\nProcessed {filename} for Run: {run_count}/{runs}\n")
                     run_count += 1
             print(f"\nFinished processing for a total of: {runs}\n")
@@ -46,19 +50,18 @@ class Pipeline:
                     print(f"Processing {filename}")
                     #Checks if monitor instance present, runs appropriate option
                     if monitor:
-                        Pipeline.process(data_path + '/' + filename, monitor)
+                        self.process(data_path + '/' + filename, monitor)
                     else:
-                        Pipeline.process(data_path+'/'+filename)
+                        self.process(data_path+'/'+filename)
                     completed_files.append(filename)
                     #Logs the filename in the completed_files.txt file
-                    with open(COMPLETED_FILES_LOG, 'a') as cfl:
+                    with open(self.completed_files_log, 'a') as cfl:
                         cfl.write(filename+"\n")
                     print(f"Finished processing {filename}")
             print("\nProcessed all available Files!!\n")
 
 
-    @staticmethod
-    def process(video_path, monitor=None):
+    def process(self, video_path, monitor=None):
         """This is the core processing Pipeline"""
 
         #start timer for calculating final runtime
@@ -100,7 +103,7 @@ class Pipeline:
         if monitor:
             monitor.current_stage = "Object Detector"
         #make sure its empty (so that only frames from the current run are saved)
-        savepoint = "./processing/extracted_frames/"
+        savepoint = self.extracted_frames_dir #"./processing/extracted_frames/"
         shutil.rmtree(savepoint)
         os.mkdir(savepoint)
 
@@ -165,11 +168,9 @@ class Pipeline:
 
 
 if __name__ == "__main__":
-    # pipeline = Pipeline()
-    # pipeline.run('processing/video')
-
     parser = argparse.ArgumentParser(description='Run a CV pipeline on saved video files')
     parser.add_argument("--data_path", type=str, default="processing/video" ,help="Path to folder holding video files")
     parser.add_argument("--runs", type=int, default=1 ,help="Number of runs to run the pipeline for") #Hangover from monitoring really but will keep for now
     args = parser.parse_args()
-    Pipeline.run(data_path=args.data_path, runs=args.runs)
+    pipeline = Pipeline()
+    pipeline.run(data_path=args.data_path, runs=args.runs)
