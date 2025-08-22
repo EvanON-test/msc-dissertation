@@ -41,23 +41,31 @@ import processing.keypoint_detector_util as kd
 
 
 class SaveDetectionThread(Thread):
-    """A separate thread that further processes and saves information regarding the detections. Currently further processes the frame to get the keypoint data
-    before saving it as a csv file as well as saving the frame as well as the frame with the bounded box on"""
+    """A seperate thread that further processes and saves information regarding high confidence detections.
+
+    Currently:
+
+        - Loads keypoint detector
+        - generates a unique directory
+        - generates a unique img filename and saves the frame as a jpg
+        - processes roi frames through keypoint detector and saves results as a csv
+        - unloads keypoint detector model
+    """
     def __init__(self, frame, roi_frames, confidence, frame_counter):
-        """Initialises the thread class as well as the detection data from the realtimepipeline that is needed for the further processing """
+        """Initialises the thread as well as the detection data given as arguments when thread object is first created, from the realtimepipeline """
         super().__init__()
         self.frame = frame
         self.roi_frames = roi_frames
         self.confidence = confidence
 
         self.frame_counter = frame_counter
+        #sets output directory and creates if it doesnt exist
         self.output_directory = "./realtime_frames/"
         os.makedirs(self.output_directory, exist_ok=True)
 
 
     def run(self):
-        """Main pipeline for processing and saving the data. Saves the frame as an image, modifies and saves an annotated copy
-        and also processes via the KD and saves the output as a csv."""
+        """Main pipeline for SaveDetection Thread. Saves the frame as an image, processes roi via the keypoint detector and saves the output as a csv."""
         try:
             print("SAVE DETECTION THREAD: Loading Keypoint Detector...")
             kd.load_model()
@@ -81,14 +89,16 @@ class SaveDetectionThread(Thread):
 
 
             #processes the roi through the KD beofre returning the coordinates
-            coordinates = kd.process(self.roi_frames)
+            #TODO: test
+            coordinates = kd.realtime_process(self.roi_frames)
             # generates the unique filename for keypoint information and flattens it beofre writing it ot hte csv file
             csv_filename = f"{timestamp}_keypoints.csv"
             csv_path = os.path.join(detection_dir, csv_filename)
             flattened_coordinates = coordinates.flatten()
             with open(csv_path, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
-                #keypoint detector returns 7 keypoints with 2 cords each. Updated their names based on rereading the Research paper
+                #TODO: CITE PAPER?
+                #keypoint detector returns 7 keypoints with 2 cords each. I updated their names to align with the details in the foundational paper
                 headers = ['crab_left_x1', 'crab_left_y1', 'crab_right_x2', 'crab_right_y2', 'left_eye_x3', 'left_eye_y3', 'right_eye_x4', 'right_eye_y4', 'carapace_end_x5', 'carapace_end_y5', 'tail_end_x6', 'tail_end_y6', 'last_segment_x7', 'last_segment_y7']
                 writer.writerow(headers)
                 writer.writerow(flattened_coordinates)
