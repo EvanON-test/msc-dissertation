@@ -40,9 +40,25 @@ class Pipeline:
                 pass
             completed_files = []
 
-        #NOTE: THIS ONLY WORKS AS INTENDED WHEN THERE IS A SINGULAR FILE PRESENT
-        #BENCHMARKING MODE: A simple loop approach to process the file/s (singular currently) relevant to the user inputted run value.
-        if runs > 1:
+        # NOTE: THIS ONLY WORKS AS INTENDED WHEN THERE IS A SINGULAR FILE PRESENT
+        # NORMAL MODE: A simple loop approach that processes each file in the directory, that isn't already in completed files, 1 time.
+        # A record is then added to the completed files.
+        if monitor is None:
+            for filename in os.listdir(data_path):
+                if filename not in completed_files and '.mp4' in filename:
+                    print(f"Processing {filename}")
+                    #Checks if monitor instance present, runs appropriate option
+                    self.process(data_path + '/' + filename)
+                    completed_files.append(filename)
+                    #Logs the filename in the completed_files.txt file
+                    with open(self.completed_files_log, 'a') as cfl:
+                        cfl.write(filename+"\n")
+                    print(f"Finished processing {filename}")
+            print("\nProcessed all available Files!!\n")
+
+        # BENCHMARKING MODE: A simple loop approach to process the file/s (singular currently) relevant to the user inputted run value.
+        # (Benchmarking was runs for 1, 4 and 8 loops)
+        else:
             run_count = 0
             while run_count < runs:
                 for filename in os.listdir(data_path):
@@ -51,25 +67,7 @@ class Pipeline:
                     print(f"\nProcessed {filename} for Run: {run_count}/{runs}\n")
                     run_count += 1
             print(f"\nFinished processing for a total of: {runs}\n")
-        else:
-            #NORMAL MODE: A simple loop approach that processes each file in the directory 1 time, that isn't already in completed files.
-            # A record is then added to the completed files.
-            for filename in os.listdir(data_path):
-                if filename not in completed_files and '.mp4' in filename:
-                    print(f"Processing {filename}")
-                    #Checks if monitor instance present, runs appropriate option
-                    self.process(data_path + '/' + filename)
 
-                    # if monitor:
-                    #     self.process(data_path + '/' + filename, monitor)
-                    # else:
-                    #     self.process(data_path+'/'+filename)
-                    completed_files.append(filename)
-                    #Logs the filename in the completed_files.txt file
-                    with open(self.completed_files_log, 'a') as cfl:
-                        cfl.write(filename+"\n")
-                    print(f"Finished processing {filename}")
-            print("\nProcessed all available Files!!\n")
 
 
     def process(self, video_path, monitor=None):
