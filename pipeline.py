@@ -1,27 +1,35 @@
+"""
+The original Computer Vision Pipeline with minor improvements for readability and
+usability.
+"""
+
+#Import statements for required modules
 import shutil
 import time
 import cv2
 import os
 import argparse
 
+#Import statements for custom model utils
 import processing.binary_classifier_util as bc
 import processing.frame_selector_util as fs
 import processing.object_detector_util as od
 import processing.keypoint_detector_util as kd
 
 
-#Updated into a class based approach
+
 class Pipeline:
-    """The amin pipeline that orchestrates the processing workflow"""
+    """The main pipeline that orchestrates the processing workflow."""
+
     def __init__(self, completed_files_log="./CompletedFiles.txt", extracted_frames_dir="./processing/extracted_frames/" ):
+        """Initialises the pipeline with easy modifiable file paths"""
         self.completed_files_log = completed_files_log
         self.extracted_frames_dir = extracted_frames_dir
 
 
     def run(self, data_path="processing/video", monitor=None, runs=1):
         """
-        Main function to run the pipeline. Allows modifications of the piepline including multiple runs,
-         for benchmarking, aswell as monitoring and normal usage modes
+        Main function to execute the pipeline. Handles two modes: normal mode  and a benchmarking mode.
         """
 
         try:
@@ -33,7 +41,7 @@ class Pipeline:
             completed_files = []
 
         #NOTE: THIS ONLY WORKS AS INTENDED WHEN THERE IS A SINGULAR FILE PRESENT
-        #A simple loop approach to process the file/s (singular currently) relevant to the user inputted run value. FOR BENCHMARKING
+        #BENCHMARKING MODE: A simple loop approach to process the file/s (singular currently) relevant to the user inputted run value.
         if runs > 1:
             run_count = 0
             while run_count < runs:
@@ -44,15 +52,18 @@ class Pipeline:
                     run_count += 1
             print(f"\nFinished processing for a total of: {runs}\n")
         else:
-            #A simple loop approach that processes each file in the directory 1 time, that isn't already in completed files. A record is then added to the completed files.
+            #NORMAL MODE: A simple loop approach that processes each file in the directory 1 time, that isn't already in completed files.
+            # A record is then added to the completed files.
             for filename in os.listdir(data_path):
                 if filename not in completed_files and '.mp4' in filename:
                     print(f"Processing {filename}")
                     #Checks if monitor instance present, runs appropriate option
-                    if monitor:
-                        self.process(data_path + '/' + filename, monitor)
-                    else:
-                        self.process(data_path+'/'+filename)
+                    self.process(data_path + '/' + filename)
+
+                    # if monitor:
+                    #     self.process(data_path + '/' + filename, monitor)
+                    # else:
+                    #     self.process(data_path+'/'+filename)
                     completed_files.append(filename)
                     #Logs the filename in the completed_files.txt file
                     with open(self.completed_files_log, 'a') as cfl:
