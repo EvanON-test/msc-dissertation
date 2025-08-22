@@ -1,8 +1,6 @@
-import numpy as np
 import shutil
 import time
 import cv2
-import sys
 import os
 import argparse
 
@@ -30,7 +28,7 @@ class Pipeline:
                 pass
             completed_files = []
 
-        # TODO: this is only works properly while there is 1 file - need to adjust/remove at a later time
+        #THIS ONLY WORKS AS INTENDED WHEN THERE IS A SINGULAR FILE PRESENT
         #A simple loop approach to process the file/s (singular currently) relevant to the user inputted run value. FOR BENCHMARKING
         if runs > 1:
             run_count = 0
@@ -131,20 +129,16 @@ class Pipeline:
         roi_frames = od.process(savepoint)
         print("ROI FRAMES: ", roi_frames.shape)
         od_time = time.time() - od_start_time
-        # try:
-        #     roi_frames = od.process_trt(savepoint)
-        # except:
-        #     roi_frames = od.process(savepoint)
 
 
 
         ##KEYPOINT DETECTOR
         kd_start_time = time.time()
-        print("\nDetecting keypoints...")
+        print("\nDetecting Keypoints...")
         # updates current stage value (if monitor instance running)
         if monitor:
             monitor.current_stage = "Keypoint Detector"
-        #KD rocesses the NumPy array and assigns
+        #KD processes the NumPy array and assigns
         coordinates = kd.process(roi_frames)
         kd_time = time.time() - kd_start_time
         print("\n{}\n".format(coordinates))
@@ -176,6 +170,6 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Run a CV pipeline on saved video files')
     parser.add_argument("--data_path", type=str, default="processing/video" ,help="Path to folder holding video files")
-    parser.add_argument("--runs", type=int, default=1 ,help="Number of runs to run the pipeline for") #Hangover from monitoring really
+    parser.add_argument("--runs", type=int, default=1 ,help="Number of runs to run the pipeline for") #Hangover from monitoring really but will keep for now
     args = parser.parse_args()
     Pipeline.run(data_path=args.data_path, runs=args.runs)
