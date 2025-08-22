@@ -11,7 +11,7 @@ import time
 import cv2
 import os
 
-from Pipeline import Pipeline
+from pipeline import Pipeline
 import platform
 import psutil
 import csv
@@ -179,15 +179,16 @@ class Monitoring:
             monitor.stop()
 
 
-
 if __name__ == "__main__":
     # monitoring = Monitoring()
     # monitoring.run('processing/video')
+
     #An updated approach. Argparse approach means the number of runs can added to the cli command
     parser = argparse.ArgumentParser(description='Run a CV pipeline with a monitoring session for a set number of runs')
+    parser.add_argument("--data_path", type=str, default="processing/video", help="Path to folder holding video files")
     parser.add_argument("--runs", type=int, default=1 ,help="Number of runs to run the pipeline for")
     args = parser.parse_args()
-    Monitoring.run(data_path="processing/video", runs=args.runs)
+    Monitoring.run(data_path=args.data_path, runs=args.runs)
 
 
 
