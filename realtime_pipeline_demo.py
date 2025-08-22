@@ -47,7 +47,7 @@ class SaveDetectionThread(Thread):
 
         - Loads keypoint detector
         - generates a unique directory
-        - generates a unique img filename and saves the frame as a jpg
+        - generates a unique filename and saves the frame as a jpg
         - processes roi frames through keypoint detector and saves results as a csv
         - unloads keypoint detector model
     """
@@ -66,6 +66,7 @@ class SaveDetectionThread(Thread):
 
     def run(self):
         """Main pipeline for SaveDetection Thread. Saves the frame as an image, processes roi via the keypoint detector and saves the output as a csv."""
+        # Loads the keypoint detection model and stops and returns an informative error message if it fails
         try:
             print("SAVE DETECTION THREAD: Loading Keypoint Detector...")
             kd.load_model()
@@ -73,47 +74,65 @@ class SaveDetectionThread(Thread):
             print(f"SAVE DETECTION THREAD: Failed to load Keypoint Detector due to: {e}")
             return
         try:
-            #cretes a timestamp used when creating unique directory and filenames
+            # cretes a timestamp used when creating unique directory and filenames
             creation_time = datetime.datetime.now()
             timestamp = creation_time.strftime("%Y-%m-%d_%H-%M-%S")
 
-            #generates the unique directory name
+            # generates the unique directory name
             detection_dir = os.path.join(self.output_directory, f"{timestamp}_Detection")
             os.mkdir(detection_dir)
 
 
-            # generates the unique filename for original image and saves it to the unique directory
+            # generates the unique filename for original frmae and saves it to the unique directory
             image_filename = f"{timestamp}_screenshot.jpg"
             path = os.path.join(detection_dir, image_filename)
             cv2.imwrite(path, self.frame)
 
 
-            #processes the roi through the KD beofre returning the coordinates
-            #TODO: test
+            # processes the roi through the KD beofre returning the coordinates
             coordinates = kd.realtime_process(self.roi_frames)
             # generates the unique filename for keypoint information and flattens it beofre writing it ot hte csv file
             csv_filename = f"{timestamp}_keypoints.csv"
             csv_path = os.path.join(detection_dir, csv_filename)
+            #flattens the co-ordinate array for csv writing. keypoint detector returns 7 keypoints with 2 cords each.
             flattened_coordinates = coordinates.flatten()
             with open(csv_path, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
                 #TODO: CITE PAPER?
-                #keypoint detector returns 7 keypoints with 2 cords each. I updated their names to align with the details in the foundational paper
-                headers = ['crab_left_x1', 'crab_left_y1', 'crab_right_x2', 'crab_right_y2', 'left_eye_x3', 'left_eye_y3', 'right_eye_x4', 'right_eye_y4', 'carapace_end_x5', 'carapace_end_y5', 'tail_end_x6', 'tail_end_y6', 'last_segment_x7', 'last_segment_y7']
+                #I updated their names to align with the details in the foundational paper
+                headers = ['crab_left_x1', 'crab_left_y1',
+                           'crab_right_x2', 'crab_right_y2',
+                           'left_eye_x3', 'left_eye_y3',
+                           'right_eye_x4', 'right_eye_y4',
+                           'carapace_end_x5', 'carapace_end_y5',
+                           'tail_end_x6', 'tail_end_y6',
+                           'last_segment_x7', 'last_segment_y7']
+                #writes headers row follow by the keypoints
                 writer.writerow(headers)
                 writer.writerow(flattened_coordinates)
             print(f"SAVE DETECTION THREAD: Keypoints saved to: {csv_path}")
 
 
-            #summary of saved files
+            # prints a summary of saved files
             print(f"SAVE DETECTION THREAD: Saved to: {image_filename}")
             print(f"SAVE DETECTION THREAD: Detection confidence: {self.confidence:.2f}")
+            #Unloads model to save resources
             kd.unload_model()
         except Exception as e:
             print(f"SAVE DETECTION THREAD: ERROR SAVING DETECTION...{e}")
 
-#TODO: Iterate and improve on this threaded approach. USE MONITORING AND DOCS
+
+
+
 class ObjectDetectorThread(Thread):
+    """A seperate thread that processes frames through object detection.
+
+        Currently:
+
+            - Loads object detector
+            -
+        """
+
     def __init__(self, frame_queue, result_queue):
         super().__init__()
         self.frame_queue = frame_queue
@@ -121,9 +140,13 @@ class ObjectDetectorThread(Thread):
         self.running = True
 
     def stop(self):
+        """Defines the stop flag for the thread (using boolean logic)"""
         self.running = False
 
     def run(self):
+        """Main processing loop for object detection. Processes frames from the input queue and placing results in
+        the output queue
+        """
         try:
             print("OD THREAD: Loading Object Detector...")
             od.load_model()
@@ -136,13 +159,13 @@ class ObjectDetectorThread(Thread):
                 if frame_data is None:
                     continue
 
-                frame, frame_counter = frame_data
+                frame, frame_number = frame_data
 
-                print(f"OD THREAD:Processing frame:  {frame_counter} for Object Detection")
+                print(f"OD THREAD:Processing frame:  {frame_number} for Object Detection")
                 # processes frame through object detector which outputs region of interest and confidence level
                 roi_frames, confidence = od.process_realtime(frame)
                 print(f"OD THREAD: Frame processed successfully, confidence: {confidence:.2f}")
-                self.result_queue.put((frame, roi_frames, confidence, frame_counter))
+                self.result_queue.put((frame, roi_frames, confidence, frame_number))
             except queue.Empty:
                 continue
             except Exception as e:
