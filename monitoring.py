@@ -159,7 +159,7 @@ class Monitoring:
         output_file = os.path.join(output_dir, timestamp + ".csv")
 
         #Gets the platform type before checking and then creating teh appropriate monitor object
-        platform_type = Monitoring.platform_type()
+        platform_type = self.platform_type()
         monitor = None
         if platform_type == "pi":
             monitor = PiMonitor(output_file=output_file)
