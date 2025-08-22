@@ -1,5 +1,6 @@
 #TODO: DONT FORGET TO cite the code sections you have used formally (gst, gfg etc)
 #TODO: update comments and README later (not changed since new approach)
+# TODO: Elaborate on Gstreamer pipeline in report. Elaborated in notion ADD more context here when cleaning up
 """
 The updated real-time implementation of the original Computer Vision Pipeline
 
@@ -58,8 +59,8 @@ class SaveDetectionThread(Thread):
         self.frame = frame
         self.roi_frames = roi_frames
         self.confidence = confidence
-
         self.frame_counter = frame_counter
+
         #sets output directory and creates if it doesnt exist
         self.output_directory = "./realtime_frames/"
         os.makedirs(self.output_directory, exist_ok=True)
@@ -137,13 +138,14 @@ class ObjectDetectorThread(Thread):
         """
 
     def __init__(self, detection_queue, result_queue):
+        """Initialises Thread and assigns queues """
         super().__init__()
         self.detection_queue = detection_queue
         self.result_queue = result_queue
         self.running = True
 
     def stop(self):
-        """Defines the stop flag for the thread (using boolean logic)"""
+        """Assigns the stop flag for the thread"""
         self.running = False
 
     def run(self):
@@ -158,19 +160,23 @@ class ObjectDetectorThread(Thread):
             print(f"OD THREAD: Failed to load Object Detector due to: {e}")
             return
 
+        #Main processing loop. Continues until stop called (and running = False)
         while self.running:
             try:
+                #gets next frame from detection queue (with a timeout for periodic checks)
                 frame_data = self.detection_queue.get(timeout=2)
                 if frame_data is None:
                     continue
 
-                frame, frame_number = frame_data
+                #Assigns frame and frame number (from queue) to variables
+                frame, frame_counter = frame_data
 
-                print(f"OD THREAD:Processing frame:  {frame_number} for Object Detection")
+                print(f"OD THREAD:Processing frame:  {frame_counter} for Object Detection")
                 # processes frame through object detector which outputs region of interest and confidence level
                 roi_frames, confidence = od.process_realtime(frame)
                 print(f"OD THREAD: Frame processed successfully, confidence: {confidence:.2f}")
-                self.result_queue.put((frame, roi_frames, confidence, frame_number))
+                #Adds frame, roi_frames, confidence and frame counter into results queue
+                self.result_queue.put((frame, roi_frames, confidence, frame_counter))
             except queue.Empty:
                 continue
             except Exception as e:
@@ -178,6 +184,19 @@ class ObjectDetectorThread(Thread):
 
 
 class AnalysisThread(Thread):
+    """A seperate thread that processes frames through binary classification and frame selection.
+
+     Currently:
+
+         - Loads binary classifier and frame selector models
+         - receives a frame and frame number from main threads analysis queue
+         - creates a temporary video file and writes frames to it (bc util expects videofile)
+         - processes temporary video file through binary classifier, assigns details to signal
+         - processes temporary video file and signal through frame selector, assigns extracted best frames
+         - Selects optimal frame for object detection
+         - Puts selected frame in object detection queue
+     """
+
     def __init__(self, analysis_queue, detection_queue):
         super().__init__()
         self.analysis_queue = analysis_queue
@@ -185,50 +204,59 @@ class AnalysisThread(Thread):
         self.running = True
 
     def stop(self):
+        """Defines the stop flag for the thread"""
         self.running = False
 
     def run(self):
         try:
+            #Loads both binary classifier and frame selector models
             print("ANALYSIS THREAD: Loading Binary Classifier and Frame Selector models...")
             bc.load_model()
             fs.load_model()
         except Exception as e:
             print(f"ANALYSIS THREAD: Failed to load Binary Classifier and Frame Selecto due to: {e}")
             return
-
+        #Main processing loop that will run until stop called
         while self.running:
             try:
+                # gets next frame sequence, 30 frame array,  from analysis queue (with a timeout for periodic checks)
                 frame_data = self.analysis_queue.get(timeout=2)
                 if frame_data is None:
                     continue
 
+                #Assigns frame array and frame number (from queue) to variables
                 frames, start_frame = frame_data
-                print(f"ANALYSIS THREAD: Processing frame: {len(frames)} from {start_frame} for Binary Classifier and Frame Selector")
+                print(f"ANALYSIS THREAD: Processing frames: {len(frames)} from start point {start_frame} for Binary Classifier and Frame Selector")
 
+                #TODO: CITE
+                #Creates temporary vido file (model utils require them for processing)
                 temp_video= tempfile.mktemp(suffix=".mp4")
                 height, width = frames[0].shape[:2]
+                #configures video writer with mp4 codec (to align with all other videos in project files)
                 fourcc = cv2.VideoWriter_fourcc(*"mp4v")
                 video_writer = cv2.VideoWriter(temp_video, fourcc, 15.0, (width, height))
 
+                #Writes all the frames to temporary video
                 for frame in frames:
                     video_writer.write(frame)
-
                 video_writer.release()
                 print("ANALYSIS THREAD: Temp Video created Successfully")
 
-                try:
-                    print("ANALYSIS THREAD: Attempting Binary Classification...")
-                    capture = cv2.VideoCapture(temp_video)
 
+                try:
+                    #BINARY CLASSIFICATION
+                    print("ANALYSIS THREAD: Attempting Binary Classification...")
+
+                    capture = cv2.VideoCapture(temp_video)
                     if not capture.isOpened():
                         print("ANALYSIS THREAD: Failed to open video capture for BC")
                         continue
-
-                    signal = bc.process_realtime(capture)
-                    # signal = bc.process(capture)
-
+                    #Assigns signal array indicating presence per frame of animal
+                    #TODO: TEST non loaded bc and fs
+                    signal = bc.process(capture)
+                    # signal = bc.process_realtime(capture)
                     capture.release()
-
+                    #prints entire array and displays presence, 1, or non presence, 0.
                     print(f"ANALYSIS THREAD: Binary Classifier returned: {signal}")
                     print(f"ANALYSIS THREAD: Binary Classifier signal length: {len(signal)}")
 
@@ -246,7 +274,8 @@ class AnalysisThread(Thread):
                         print("ANALYSIS THREAD: Failed to open video capture for BC")
                         continue
 
-                    extracted_frame_idxs = fs.process_realtime(signal, capture)
+                    # extracted_frame_idxs = fs.process_realtime(signal, capture)
+                    extracted_frame_idxs = fs.process(signal, capture)
 
                     capture.release()
 
@@ -298,14 +327,12 @@ class RealtimePipelineDemo:
     def __init__(self, process_every_n_frames=30):
         #Forces os's primary display (negates issues arising via ssh given commands)
         os.environ['DISPLAY'] = ':0'
-        #TODO: Gstreamer pipeline. Elaborated in notion ADD more context here when cleaning up
+        #TODO: CITE
         self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720, framerate=45/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=2 sync=false"
         self.process_every_n_frames = process_every_n_frames
 
         # self.detection_box = None
         self.detection_confidence = 0.0
-        #TODO: not sure if needed now (think it was just bb relevance) test removal later
-        #self.detection_age = 0
 
         #Stores previous frame for use in motion detection
         self.previous_frame = None
@@ -319,14 +346,12 @@ class RealtimePipelineDemo:
         #Metrics output
         self.jetson = jtop()
 
-        #TODO: test slight decreases of result queue from 2 t o1
-        #Object detection thread
-        self.detection_queue = Queue(maxsize=1) #3
-        self.result_queue = Queue(maxsize=1) #8
-        self.detection_thread = ObjectDetectorThread(self.detection_queue, self.result_queue)
-
-        self.analysis_queue = Queue(maxsize=1) #2
+        #
+        self.analysis_queue = Queue(maxsize=1)
+        self.detection_queue = Queue(maxsize=1)
+        self.result_queue = Queue(maxsize=1)
         self.analysis_thread = AnalysisThread(self.analysis_queue, self.detection_queue)
+        self.detection_thread = ObjectDetectorThread(self.detection_queue, self.result_queue)
 
         self.collecting = False
         self.collected_frames = []
