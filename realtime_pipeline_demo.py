@@ -252,58 +252,58 @@ class AnalysisThread(Thread):
                         print("ANALYSIS THREAD: Failed to open video capture for BC")
                         continue
                     #Assigns signal array indicating presence per frame of animal
-                    #TODO: TEST non loaded bc and fs
-                    signal = bc.process(capture)
-                    # signal = bc.process_realtime(capture)
+                    # signal = bc.process(capture)
+                    signal = bc.process_realtime(capture)
                     capture.release()
                     #prints entire array and displays presence, 1, or non presence, 0.
                     print(f"ANALYSIS THREAD: Binary Classifier returned: {signal}")
                     print(f"ANALYSIS THREAD: Binary Classifier signal length: {len(signal)}")
 
+                    #Verifies the presence of positive values (animal presence)
                     positive_frames = sum(signal)
-
                     if positive_frames == 0:
                         print("ANALYSIS THREAD: No Crustacean detected - skipping FS processing")
                         continue
 
                     print("ANALYSIS THREAD: Attempting Frame Selection...")
-
                     capture = cv2.VideoCapture(temp_video)
-
                     if not capture.isOpened():
                         print("ANALYSIS THREAD: Failed to open video capture for BC")
                         continue
 
-                    # extracted_frame_idxs = fs.process_realtime(signal, capture)
-                    extracted_frame_idxs = fs.process(signal, capture)
-
+                    # FS processes the predictions and extracts the best frames
+                    # best_frames[0] is top, best_frames[1] is bottom,
+                    extracted_frame_idxs = fs.process_realtime(signal, capture)
+                    # extracted_frame_idxs = fs.process(signal, capture)
                     capture.release()
 
+                    # prints total No. of sub arrays and number frames in both the top and bottom arrays
                     print("ANALYSIS THREAD: EXTRACTED: ")
                     print(len(extracted_frame_idxs))
                     print(len(extracted_frame_idxs[0]))
                     print(len(extracted_frame_idxs[1]))
 
+                    #Selects top frame with a fallback to bottom frame
                     selected_index = None
                     if extracted_frame_idxs[0]:
                         selected_index = extracted_frame_idxs[0][0]
                     elif extracted_frame_idxs[1]:
                         selected_index = extracted_frame_idxs[1][0]
 
+                    # Checks if selected index not none and selects the best frame and its number
                     if selected_index is not None:
                         best_frame = frames[selected_index]
                         frame_number = start_frame + selected_index
                         print(f"ANALYSIS THREAD: Selected Frame: {frame_number} for Object Detection")
-
+                        #attmpts to add the variables into the detection queue for use in object detection thread
                         try:
                             self.detection_queue.put((best_frame.copy(), frame_number))
                         except Exception as e:
                             print(f"ANALYSIS THREAD: ERROR SAVING DETECTION...{e}")
-
                     else:
                         print("ANALYSIS THREAD: No good frame selected")
-
                 finally:
+                    #cleans up memory regardless of outcome
                     try:
                         os.remove(temp_video)
                     except:

@@ -203,7 +203,130 @@ class RealtimeMonitor(Thread):
 
 
 
+# class AnalysisThread(Thread):
+#     def __init__(self, analysis_queue, detection_queue):
+#         super().__init__()
+#         self.analysis_queue = analysis_queue
+#         self.detection_queue = detection_queue
+#         self.running = True
+#
+#     def stop(self):
+#         self.running = False
+#
+#     def run(self):
+#         try:
+#             print("ANALYSIS THREAD: Loading Binary Classifier and Frame Selector models...")
+#             bc.load_model()
+#             fs.load_model()
+#         except Exception as e:
+#             print(f"ANALYSIS THREAD: Failed to load Binary Classifier and Frame Selecto due to: {e}")
+#             return
+#
+#         while self.running:
+#             try:
+#                 frame_data = self.analysis_queue.get(timeout=2)
+#                 if frame_data is None:
+#                     continue
+#
+#                 frames, start_frame = frame_data
+#                 print(f"ANALYSIS THREAD: Processing frame: {len(frames)} from {start_frame} for Binary Classifier and Frame Selector")
+#
+#                 temp_video= tempfile.mktemp(suffix=".mp4")
+#                 height, width = frames[0].shape[:2]
+#                 fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+#                 video_writer = cv2.VideoWriter(temp_video, fourcc, 15.0, (width, height))
+#
+#                 for frame in frames:
+#                     video_writer.write(frame)
+#
+#                 video_writer.release()
+#                 print("ANALYSIS THREAD: Temp Video created Successfully")
+#
+#                 try:
+#                     print("ANALYSIS THREAD: Attempting Binary Classification...")
+#                     capture = cv2.VideoCapture(temp_video)
+#
+#                     if not capture.isOpened():
+#                         print("ANALYSIS THREAD: Failed to open video capture for BC")
+#                         continue
+#
+#                     signal = bc.process_realtime(capture)
+#                     # signal = bc.process(capture)
+#
+#                     capture.release()
+#
+#                     print(f"ANALYSIS THREAD: Binary Classifier returned: {signal}")
+#                     print(f"ANALYSIS THREAD: Binary Classifier signal length: {len(signal)}")
+#
+#                     positive_frames = sum(signal)
+#
+#                     if positive_frames == 0:
+#                         print("ANALYSIS THREAD: No Crustacean detected - skipping FS processing")
+#                         continue
+#
+#                     print("ANALYSIS THREAD: Attempting Frame Selection...")
+#
+#                     capture = cv2.VideoCapture(temp_video)
+#
+#                     if not capture.isOpened():
+#                         print("ANALYSIS THREAD: Failed to open video capture for BC")
+#                         continue
+#
+#                     extracted_frame_idxs = fs.process_realtime(signal, capture)
+#
+#                     capture.release()
+#
+#                     print("ANALYSIS THREAD: EXTRACTED: ")
+#                     print(len(extracted_frame_idxs))
+#                     print(len(extracted_frame_idxs[0]))
+#                     print(len(extracted_frame_idxs[1]))
+#
+#                     selected_index = None
+#                     if extracted_frame_idxs[0]:
+#                         selected_index = extracted_frame_idxs[0][0]
+#                     elif extracted_frame_idxs[1]:
+#                         selected_index = extracted_frame_idxs[1][0]
+#
+#                     if selected_index is not None:
+#                         best_frame = frames[selected_index]
+#                         frame_number = start_frame + selected_index
+#                         print(f"ANALYSIS THREAD: Selected Frame: {frame_number} for Object Detection")
+#
+#                         try:
+#                             self.detection_queue.put((best_frame.copy(), frame_number))
+#                         except Exception as e:
+#                             print(f"ANALYSIS THREAD: ERROR SAVING DETECTION...{e}")
+#
+#                     else:
+#                         print("ANALYSIS THREAD: No good frame selected")
+#
+#                 finally:
+#                     try:
+#                         os.remove(temp_video)
+#                     except:
+#                         pass
+#
+#             except queue.Empty:
+#                 continue
+#             except Exception as e:
+#                 print(f"ANALYSIS THREAD: Error in Binary Classifier and Frame Selection Thread: {e}")
+
+
+
 class AnalysisThread(Thread):
+    """A seperate thread that processes frames through binary classification and frame selection.
+
+     Currently:
+
+         - Loads binary classifier and frame selector models
+         - receives a frame and frame number from main threads analysis queue
+         - creates a temporary video file and writes frames to it (bc util expects videofile)
+         - processes temporary video file through binary classifier, assigns details to signal
+         - processes temporary video file and signal through frame selector, assigns extracted best frames
+         - Selects optimal frame for object detection
+         - Puts selected frame in object detection queue
+     """
+
     def __init__(self, analysis_queue, detection_queue):
         super().__init__()
         self.analysis_queue = analysis_queue
@@ -211,96 +334,106 @@ class AnalysisThread(Thread):
         self.running = True
 
     def stop(self):
+        """Defines the stop flag for the thread"""
         self.running = False
 
     def run(self):
         try:
+            #Loads both binary classifier and frame selector models
             print("ANALYSIS THREAD: Loading Binary Classifier and Frame Selector models...")
             bc.load_model()
             fs.load_model()
         except Exception as e:
             print(f"ANALYSIS THREAD: Failed to load Binary Classifier and Frame Selecto due to: {e}")
             return
-
+        #Main processing loop that will run until stop called
         while self.running:
             try:
+                # gets next frame sequence, 30 frame array,  from analysis queue (with a timeout for periodic checks)
                 frame_data = self.analysis_queue.get(timeout=2)
                 if frame_data is None:
                     continue
 
+                #Assigns frame array and frame number (from queue) to variables
                 frames, start_frame = frame_data
-                print(f"ANALYSIS THREAD: Processing frame: {len(frames)} from {start_frame} for Binary Classifier and Frame Selector")
+                print(f"ANALYSIS THREAD: Processing frames: {len(frames)} from start point {start_frame} for Binary Classifier and Frame Selector")
 
+                #TODO: CITE
+                #Creates temporary vido file (model utils require them for processing)
                 temp_video= tempfile.mktemp(suffix=".mp4")
                 height, width = frames[0].shape[:2]
+                #configures video writer with mp4 codec (to align with all other videos in project files)
                 fourcc = cv2.VideoWriter_fourcc(*"mp4v")
                 video_writer = cv2.VideoWriter(temp_video, fourcc, 15.0, (width, height))
 
+                #Writes all the frames to temporary video
                 for frame in frames:
                     video_writer.write(frame)
-
                 video_writer.release()
                 print("ANALYSIS THREAD: Temp Video created Successfully")
 
-                try:
-                    print("ANALYSIS THREAD: Attempting Binary Classification...")
-                    capture = cv2.VideoCapture(temp_video)
 
+                try:
+                    #BINARY CLASSIFICATION
+                    print("ANALYSIS THREAD: Attempting Binary Classification...")
+
+                    capture = cv2.VideoCapture(temp_video)
                     if not capture.isOpened():
                         print("ANALYSIS THREAD: Failed to open video capture for BC")
                         continue
-
-                    signal = bc.process_realtime(capture)
+                    #Assigns signal array indicating presence per frame of animal
                     # signal = bc.process(capture)
-
+                    signal = bc.process_realtime(capture)
                     capture.release()
-
+                    #prints entire array and displays presence, 1, or non presence, 0.
                     print(f"ANALYSIS THREAD: Binary Classifier returned: {signal}")
                     print(f"ANALYSIS THREAD: Binary Classifier signal length: {len(signal)}")
 
+                    #Verifies the presence of positive values (animal presence)
                     positive_frames = sum(signal)
-
                     if positive_frames == 0:
                         print("ANALYSIS THREAD: No Crustacean detected - skipping FS processing")
                         continue
 
                     print("ANALYSIS THREAD: Attempting Frame Selection...")
-
                     capture = cv2.VideoCapture(temp_video)
-
                     if not capture.isOpened():
                         print("ANALYSIS THREAD: Failed to open video capture for BC")
                         continue
 
+                    # FS processes the predictions and extracts the best frames
+                    # best_frames[0] is top, best_frames[1] is bottom,
                     extracted_frame_idxs = fs.process_realtime(signal, capture)
-
+                    # extracted_frame_idxs = fs.process(signal, capture)
                     capture.release()
 
+                    # prints total No. of sub arrays and number frames in both the top and bottom arrays
                     print("ANALYSIS THREAD: EXTRACTED: ")
                     print(len(extracted_frame_idxs))
                     print(len(extracted_frame_idxs[0]))
                     print(len(extracted_frame_idxs[1]))
 
+                    #Selects top frame with a fallback to bottom frame
                     selected_index = None
                     if extracted_frame_idxs[0]:
                         selected_index = extracted_frame_idxs[0][0]
                     elif extracted_frame_idxs[1]:
                         selected_index = extracted_frame_idxs[1][0]
 
+                    # Checks if selected index not none and selects the best frame and its number
                     if selected_index is not None:
                         best_frame = frames[selected_index]
                         frame_number = start_frame + selected_index
                         print(f"ANALYSIS THREAD: Selected Frame: {frame_number} for Object Detection")
-
+                        #attmpts to add the variables into the detection queue for use in object detection thread
                         try:
                             self.detection_queue.put((best_frame.copy(), frame_number))
                         except Exception as e:
                             print(f"ANALYSIS THREAD: ERROR SAVING DETECTION...{e}")
-
                     else:
                         print("ANALYSIS THREAD: No good frame selected")
-
                 finally:
+                    #cleans up memory regardless of outcome
                     try:
                         os.remove(temp_video)
                     except:
@@ -310,6 +443,13 @@ class AnalysisThread(Thread):
                 continue
             except Exception as e:
                 print(f"ANALYSIS THREAD: Error in Binary Classifier and Frame Selection Thread: {e}")
+
+
+
+
+
+
+
 
 
 #TODO: update comments and README later (not changed since new approach)
