@@ -133,8 +133,10 @@ class NanoMonitor(BaseMonitor):
 #TODO: update this approach to a more general hardware approach (needed if you introduce newer Pi's to the mix)
 class Monitoring:
     """Main class for running the benchmark. Checks for hardware type before running the processes """
-    @staticmethod
-    def platform_type():
+    def __init__(self, output_dir="benchmark/" ):
+        self.output_dir = output_dir
+
+    def platform_type(self):
         """Detects the hardware type"""
         machine = platform.machine()
         if machine == "armv7l":
@@ -144,17 +146,17 @@ class Monitoring:
         else:
             return "unknown"
 
-    @staticmethod
-    def run(data_path, runs):
+
+    def run(self, data_path="processing/video", runs=1):
         """Runs the entire monitoring session: Creates filepath, checks platform type, starts monitoring and runs the pipeline process (which is to be monitored)
         before finally stopping the process"""
         #Designates the output directory and generates the filename (which is the timestamp of when it is run)
-        output_directory = "benchmark/"
-        os.makedirs(output_directory, exist_ok=True)
+        output_dir = "benchmark/"
+        os.makedirs(output_dir, exist_ok=True)
         #NOTE: The Pi has to query a server for time, thus time and date are not accurate (although it is still increments so the files are chronological regardless)
         creation_time = datetime.datetime.now()
         timestamp = creation_time.strftime("%Y-%m-%d_%H-%M")#Changed this after first working run. Should order files correctly until/if i change the time access approach
-        output_file = os.path.join(output_directory, timestamp + ".csv")
+        output_file = os.path.join(output_dir, timestamp + ".csv")
 
         #Gets the platform type before checking and then creating teh appropriate monitor object
         platform_type = Monitoring.platform_type()
@@ -181,15 +183,13 @@ class Monitoring:
 
 
 if __name__ == "__main__":
-    # monitoring = Monitoring()
-    # monitoring.run('processing/video')
-
     #An updated approach. Argparse approach means the number of runs can added to the cli command
     parser = argparse.ArgumentParser(description='Run a CV pipeline with a monitoring session for a set number of runs')
     parser.add_argument("--data_path", type=str, default="processing/video", help="Path to folder holding video files")
     parser.add_argument("--runs", type=int, default=1 ,help="Number of runs to run the pipeline for")
     args = parser.parse_args()
-    Monitoring.run(data_path=args.data_path, runs=args.runs)
+    monitoring = Monitoring()
+    monitoring.run(data_path=args.data_path, runs=args.runs)
 
 
 
