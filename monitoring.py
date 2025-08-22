@@ -18,7 +18,6 @@ try:
     from jtop import jtop
 except ImportError:
     jtop = None
-
 #gpiozero provides CPU temperature on the raspberry pi.
 try:
     from gpiozero import CPUTemperature
@@ -148,18 +147,6 @@ class Monitoring:
         #defines the output directory
         self.output_dir = output_dir
 
-    # def platform_type(self):
-    #     """Detects the hardware type"""
-    #     #Gets the platform machine string and assigns it to machine.
-    #     machine = platform.machine()
-    #     #checks it against he hardcoded string of what is known to be present in the pi and nano. Returns
-    #     if machine == "armv7l":
-    #         return "pi"
-    #     elif machine == "aarch64":
-    #         return "jetson"
-    #     else:
-    #         return "unknown"
-
 
     def run(self, data_path="processing/video", runs=1):
         """Runs the entire monitoring session: Creates filepath, checks platform type, starts monitoring and runs the pipeline process (which is to be monitored)
@@ -171,7 +158,7 @@ class Monitoring:
         timestamp = creation_time.strftime("%Y-%m-%d_%H-%M")#Changed this after first working run. Should order files correctly until/if i change the time access approach
         output_file = os.path.join(self.output_dir, timestamp + ".csv")
 
-        # monitor = None
+        #Gets the monitor type and creates the correct monitor object based on whether a pi or nano specific details are returned
         machine = platform.machine()
         if machine == "armv7l":
             monitor = PiMonitor(output_file=output_file)
@@ -180,16 +167,6 @@ class Monitoring:
         else:
             print("Unknown platform type")
             monitor = BaseMonitor(output_file=output_file)
-
-        #Gets the platform type before checking and then creating teh appropriate monitor object
-        # platform_type = self.platform_type()
-        # monitor = None
-        # if platform_type == "pi":
-        #     monitor = PiMonitor(output_file=output_file)
-        # elif platform_type == "jetson":
-        #     monitor = NanoMonitor(output_file=output_file)
-        # else:
-        #     print("Unknown platform type")
 
         #Starts the monitors background thread (the start function is inherited from parent Thread class)
         monitor.start()
@@ -206,10 +183,12 @@ class Monitoring:
 
 
 if __name__ == "__main__":
-    #An updated approach. Argparse approach means the number of runs can added to the cli command
+    #sets up the command line argument parsing
     parser = argparse.ArgumentParser(description='Run a CV pipeline with a monitoring session for a set number of runs')
     parser.add_argument("--data_path", type=str, default="processing/video", help="Path to folder holding video files")
     parser.add_argument("--runs", type=int, default=1 ,help="Number of runs to run the pipeline for")
+
+    # parses argument and executes pipeline
     args = parser.parse_args()
     monitoring = Monitoring()
     monitoring.run(data_path=args.data_path, runs=args.runs)

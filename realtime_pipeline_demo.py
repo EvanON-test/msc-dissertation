@@ -1,31 +1,37 @@
 #TODO: DONT FORGET TO cite the code sections you have used formally (gst, gfg etc)
-#TODO: Replace print with logging info for better threading output
-#TODO: test with 60, 30, 15 etc various levels for basic performance understanding
+"""
+The updated real-time implementation of the original Computer Vision Pipeline
+
+Multi-threaded approach constituting of:
+
+    - MainThread: Capture from camera, motion detection, display and orchestration
+    - AnalysisThread: Performs binary classification and frame selection
+    - ObjectDetectorThread: Processes frames selected for object detection
+    - SaveDetectionThread:   Processes keypoint detection and saved detection results
+"""
+
+#TODO: FUTURE JOB - Iterate realtime_pipeline_demo and realtime_pipeline as most code is duplicated
+#Import statements for required modules
 import queue
 import time
-import numpy as np
 import cv2
-import sys
 import os
-from threading import Thread, Event, Lock
+from threading import Thread
 import argparse
 import datetime
 import gc
 import csv
-import platform
 import psutil
 from queue import Queue
 import tempfile
 
-
-
-#Utilised try bocks to allow for failure, due to the wrong hardware
 #jtop is a nano specific library for accessing hardware metrics
 try:
     from jtop import jtop
 except ImportError:
     jtop = None
 
+#Import statements for custom model utils
 import processing.binary_classifier_util as bc
 import processing.frame_selector_util as fs
 import processing.object_detector_util as od
@@ -33,7 +39,7 @@ import processing.keypoint_detector_util as kd
 
 
 
-# #TODO: THIS IS DUPLICATED - CAN IMPROVE LATER ITERATIONS - Potentially slim it as just to save image & keypoints
+
 class SaveDetectionThread(Thread):
     """A separate thread that further processes and saves information regarding the detections. Currently further processes the frame to get the keypoint data
     before saving it as a csv file as well as saving the frame as well as the frame with the bounded box on"""
