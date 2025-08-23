@@ -45,8 +45,6 @@ import processing.keypoint_detector_util as kd
 class SaveDetectionThread(Thread):
     """A seperate thread that further processes and saves information regarding high confidence detections.
 
-    Currently:
-
         - Loads keypoint detector
         - generates a unique directory
         - generates a unique filename and saves the frame as a jpg
@@ -129,12 +127,10 @@ class SaveDetectionThread(Thread):
 class ObjectDetectorThread(Thread):
     """A seperate thread that processes frames through object detection.
 
-        Currently:
-
             - Loads object detector
             - receives a frame and frame number from analysis thread's queue
             - processes frame through object detector and assigns returned roi and confidence values
-            - puts frame, roi info, confidence and frame number into result queue
+            - puts frame, roi info, confidence and frame number into result queue to be returned to Main thread
         """
 
     def __init__(self, detection_queue, result_queue):
@@ -186,7 +182,7 @@ class ObjectDetectorThread(Thread):
 class AnalysisThread(Thread):
     """A seperate thread that processes frames through binary classification and frame selection.
 
-     Currently:
+     This includes:
 
          - Loads binary classifier and frame selector models
          - receives a frame and frame number from main threads analysis queue
@@ -198,6 +194,7 @@ class AnalysisThread(Thread):
      """
 
     def __init__(self, analysis_queue, detection_queue):
+        """Initialises Thread and assigns queues """
         super().__init__()
         self.analysis_queue = analysis_queue
         self.detection_queue = detection_queue
@@ -318,58 +315,77 @@ class AnalysisThread(Thread):
 
 
 
-
-
-
 class RealtimePipelineDemo:
-    """Main class for running the realtime pipeline. Orchestrates the capture, display and processing of frames.
-    This includes managing the created cpature and processing threads"""
+    """This is the main orchestrator class for the entire realtime pipeline.
+
+    This includes:
+
+        - Camera capture and display
+        - motion detection and triggering events
+        - frame collection and analysis
+        - coordination of the multi-threaded approach
+        - collection of hardware metrics
+        - User interface display
+    """
     def __init__(self, process_every_n_frames=30):
-        #Forces os's primary display (negates issues arising via ssh given commands)
+        """Initialises Thread and assigns queues. Assigns frame process cadence as 30 by default """
+        #Forces os's primary display (negates issues arising due to ssh commands)
         os.environ['DISPLAY'] = ':0'
         #TODO: CITE
         self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720, framerate=45/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=2 sync=false"
         self.process_every_n_frames = process_every_n_frames
 
-        # self.detection_box = None
+        #most recent detection confidence
         self.detection_confidence = 0.0
-
-        #Stores previous frame for use in motion detection
-        self.previous_frame = None
-        #Minimum level, percentage, above which motion detection function is triggered
-        self.detection_minimum = 15
-
+        #total count of confident detections
         self.detection_count = 0
         # starttime used for calculating runtime
         self.start_time = 0
 
-        #Metrics output
+        #Stores previous frame for use in calculating changes between frames for motion detection
+        self.previous_frame = None
+        #Minimum level, in %, above which motion detection function is triggered
+        self.detection_minimum = 15
+
+        #jtop to be interogated for metrics
         self.jetson = jtop()
 
-        #
-        self.analysis_queue = Queue(maxsize=1)
-        self.detection_queue = Queue(maxsize=1)
-        self.result_queue = Queue(maxsize=1)
+        #TODO: CITE
+        #THREADING FOCUS
+        #FLOW REMINDER: MAIN -> ANALYSIS -> OBJECTDETECTION -> MAIN -> SAVEDETECTION
+        self.analysis_queue = Queue(maxsize=1) #Frame sequence sent to ANALYSIS
+        self.detection_queue = Queue(maxsize=1) #Selected frame from ANALYSIS to OBJECT DETECTION
+        self.result_queue = Queue(maxsize=1) #Detection results sent from OBJECT DETECTION to MAIN
+
+        #Initialises seperate threads for frame processing. ANALYSIS (bc & fs) and DETECTION (od)
         self.analysis_thread = AnalysisThread(self.analysis_queue, self.detection_queue)
         self.detection_thread = ObjectDetectorThread(self.detection_queue, self.result_queue)
 
+        #variables for motion detection management
         self.collecting = False
-        self.collected_frames = []
-        self.collect_start = 0
-        self.frames_needed = 30
+        self.collected_frames = [] #accumulated frames for
+        self.collect_start = 0 #allows for the recording of the frame at which collection began
+        self.frames_needed = 30 #total frames required
 
+        #variables to action detection cooldown
         self.last_detection_time = 0
         self.detection_cooldown = 3
 
 
+
+
     def get_metrics(self):
-        """Gathers metrics that have common access approaches in both devices and the specific device"""
+        """Gathers hardware metrics to display to user for realtime performance monitoring"""
+        #initilises empty dictionary
         metrics = {}
         try:
+            # Adds the current CPU utilisation percentage as a value to cpu_percent key
             metrics['cpu_percent'] = psutil.cpu_percent(interval=None)
+            # Adds the current RAM utilisation percentage as a value to ram_percent key
             memory = psutil.virtual_memory()
             metrics['ram_percent'] = memory.percent
             # gets the nano metrics using the jtop service object
+            # and adds the current cpu temp and gpu temp, as celsius, to the cpu_temp and gpu_temp keys respectively
             metrics['cpu_temp'] = self.jetson.temperature.get('CPU').get('temp')
             metrics['gpu_temp'] = self.jetson.temperature.get('GPU').get('temp')
             # Power metrics not possible on this iteration of NVIDIA's device
@@ -380,29 +396,31 @@ class RealtimePipelineDemo:
 
 
 
-    #TODO: refrence this whole block
+
+    #TODO: CITE
     def detect_motion(self, frame):
-        """Detects motion between consecutive frames by comparing the current frame to the previous """
+        """Detects motion between consecutive frames by calculating the pixel difference between the current frame and the previous """
         #converts the frame to greyscale
         grey_image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        #Intialises peprevious frame to current frame, for first call
+        #Intialises previous frame to current frame, for first call
         if self.previous_frame is None:
             self.previous_frame = grey_image
             return False
 
         #clacualtes absolute difference between the frames
         frame_diff = cv2.absdiff(self.previous_frame, grey_image)
+        #updates the reference frame for next iteration
         self.previous_frame = grey_image
 
         #Applies threshold to highlight significant differences
-        #Pixels iwth a difference greater than detection minimum (currently 30) become white, others black
+        #Pixels iwth a difference greater than detection minimum become white, others black
         _, thresh = cv2.threshold(frame_diff, self.detection_minimum, 255, cv2.THRESH_BINARY)
 
         #Calcualtes the percentage of the pixels that changed significantly
         non_zero_count = cv2.countNonZero(thresh)
         total_pixels = thresh.size
         movement_percentage = (non_zero_count / total_pixels) * 100
-       #Checks if the percentage greater than minimum (currently 30) and returns boolean
+       #Checks if the percentage greater than minimum and returns boolean
         if movement_percentage > self.detection_minimum:
             print(f"REALTIME PIPELINE: Detected motion: {movement_percentage:.2f}%")
             return True
@@ -411,8 +429,17 @@ class RealtimePipelineDemo:
             return False
 
 
+    #TODO: carry on from here - 1-2 hours with util's i would guess
+
     def run(self):
-        """Creates, configures and starts both threads befroe waiting for completion and cleanly shutting down"""
+        """The main method that executes the orchestrating logic of the entire realtime pipeline
+
+        Main Pipeline Flow:
+
+            - Initialises camera
+
+
+        """
         self.start_time = time.time()
 
         try:
