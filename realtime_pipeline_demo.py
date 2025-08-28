@@ -25,6 +25,8 @@ import psutil
 from queue import Queue
 import tempfile
 
+from tkinter import Tk
+
 #jtop is a nano specific library for accessing hardware metrics
 try:
     from jtop import jtop
@@ -330,6 +332,8 @@ class RealtimePipelineDemo:
         os.environ['DISPLAY'] = ':0'
         #NOTE - THIS IS A MODIFIED VERSION OF USER POST. REFERENCED AND CITED IN SECTION 5.1.2 OF REPORT
         self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720, framerate=45/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=2 sync=false"
+        #TODO: remove the flip version when you aare DONE DONE :)
+        #self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720, framerate=45/1 ! nvvidconv ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=2 sync=false"
         self.process_every_n_frames = process_every_n_frames
 
         #most recent detection confidence
@@ -453,6 +457,12 @@ class RealtimePipelineDemo:
             # extracts the cameras properties
             width = capture.get(cv2.CAP_PROP_FRAME_WIDTH)
             height = capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
+
+            try:
+                cv2.namedWindow("RealTimePipeline", cv2.WINDOW_AUTOSIZE)
+            except Exception as e:
+                print(f"REALTIME PIPELINE: Failed to create autosizabkle window : {e}")
+
 
             #frame counting variables for tracking and display
             frame_counter = 0
@@ -601,7 +611,7 @@ class RealtimePipelineDemo:
                 # cv2.putText(display_frame, f"GPU: {hardware_metrics['gpu_temp']} celsius", (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
                 # displys the frame
-                cv2.imshow('Live Feed', display_frame)
+                cv2.imshow('RealTimePipelineDemo', display_frame)
 
                 # checks for user input. If q pressed initiates stop event
                 if cv2.waitKey(1) & 0xFF == ord('q'):
