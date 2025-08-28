@@ -1,5 +1,4 @@
 #TODO: DONT FORGET TO cite the code sections you have used formally (gst, gfg etc)
-#TODO: update comments and README later (not changed since new approach)
 """
 The updated real-time implementation of the original Computer Vision Pipeline
 
