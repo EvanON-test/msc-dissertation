@@ -9,6 +9,7 @@ Versions:
 - tflite_runtime	2.13.0
 - PIL 				10.0.0
 
+---
 
 # pipeline.py - Main file for executing the pipeline.
 
@@ -39,6 +40,7 @@ Modified Use:
 
     `sudo python3.9 pipeline.py --data_path PATHTOVIDEO --runs 6`
 
+---
 
 # monitoring.py - Main file for executing the monitoring system.
 
@@ -79,7 +81,7 @@ Modified Use:
     `sudo python3.9 monitoring.py --data_path PATHTOVIDEO --runs 8`
 
 
-
+---
 
 
 # realtime_pipeline.py - Main file for executing the multi-threaded pipeline in real time, headlessly.
@@ -107,6 +109,7 @@ Modified Use:
 
     `sudo python3.9 realtime_pipeline.py --frames_interval 120`
 
+---
 
 # realtime_pipeline_demo.py - Main file for executing the multi-threaded pipeline in real time, with a live display.
 
