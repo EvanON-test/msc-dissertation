@@ -10,6 +10,15 @@ Versions:
 - PIL 				10.0.0
 
 ---
+# How to use Real-time implementation on Jetson Nano 2GB Device
+
+1. Plug in, power up and login to device. (device must have camera and display)
+2. Pull project from GitHub and install libraries
+3. Test using the default commands
+4. Run either of the realtime implementations
+5. Place a crustacean in front of the camera (image, toy etc might work but with varying outcomes)
+
+---
 
 # pipeline.py - Main file for executing the pipeline.
 
@@ -80,6 +89,7 @@ Modified Use:
 
     `sudo python3.9 monitoring.py --data_path PATHTOVIDEO --runs 8`
 
+Metrics data is saved to the following directory: `msc-dissertation/benchmark` 
 
 ---
 
@@ -109,6 +119,8 @@ Modified Use:
 
     `sudo python3.9 realtime_pipeline.py --frames_interval 120`
 
+Detection data is saved in its own unique directory within the following directory: `msc-dissertation/realtime_frames` 
+
 ---
 
 # realtime_pipeline_demo.py - Main file for executing the multi-threaded pipeline in real time, with a live display.
@@ -134,3 +146,5 @@ Default Use:
 Modified Use:
 
     `sudo python3.9 realtime_pipeline_demo.py --frames_interval 120`
+
+Detection data is saved in its own unique directory within the following directory: `msc-dissertation/realtime_frames` 
