@@ -25,8 +25,6 @@ import psutil
 from queue import Queue
 import tempfile
 
-from tkinter import Tk
-
 #jtop is a nano specific library for accessing hardware metrics
 try:
     from jtop import jtop
