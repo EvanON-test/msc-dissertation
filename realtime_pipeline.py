@@ -1,25 +1,18 @@
 #TODO: DONT FORGET TO cite the code sections you have used formally (gst, gfg etc)
 #TODO: Replace print with logging info for better threading output
-#TODO: test with 60, 30, 15 etc various levels for basic performance understanding
 import queue
 import time
-from fileinput import filename
 
-import numpy as np
 import cv2
-import sys
 import os
-from threading import Thread, Event, Lock
+from threading import Thread, Event
 import argparse
 import datetime
 import gc
 import csv
-import platform
 import psutil
 from queue import Queue
 import tempfile
-
-from google.protobuf import duration
 
 #Utilised try bocks to allow for failure, due to the wrong hardware
 #jtop is a nano specific library for accessing hardware metrics

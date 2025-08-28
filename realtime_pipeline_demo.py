@@ -1,6 +1,5 @@
 #TODO: DONT FORGET TO cite the code sections you have used formally (gst, gfg etc)
 #TODO: update comments and README later (not changed since new approach)
-# TODO: Elaborate on Gstreamer pipeline in report. Elaborated in notion ADD more context here when cleaning up
 """
 The updated real-time implementation of the original Computer Vision Pipeline
 
@@ -429,23 +428,28 @@ class RealtimePipelineDemo:
             return False
 
 
-    #TODO: carry on from here - 1-2 hours with util's i would guess
 
     def run(self):
         """The main method that executes the orchestrating logic of the entire realtime pipeline
 
         Main Pipeline Flow:
 
-            - Initialises camera
-
-
+            - Initialises camera and processing threads
+            - Starts main pipeline loop (continues until quit)
+            - Detects motion, triggers frame collection above as motion limit
+            - Sends frame collection for analysis in AnalysisThread, via analysis queue (BC&FS)
+            - Singular frame rom Analysis is sent for detection in ObjectDetectionThread, via detection queue (OD)
+            - OD results sent via results thread to RealTimePipeline thread, updates overlay details and counts, sent to be saved vi results queue
+            - Displayed live feed is updated with detection data and hardware metrics
+            - Loop continues until quit
         """
+        #initialises start time for performance metrics and calculations
         self.start_time = time.time()
 
         try:
-            # Initialises camera capture utilising Gstreamer approach
+            # Initialises camera capture utilising Gstreamer
             capture = cv2.VideoCapture(self.gst_stream, cv2.CAP_GSTREAMER)
-            # Verifies camera opened succesfully
+            # Verifies camera opened successfully
             if not capture.isOpened():
                 print("REALTIME PIPELINE: GST Stream failed to open.")
                 print(f"REALTIME PIPELINE: Pipeline: {self.gst_stream}")
@@ -455,6 +459,7 @@ class RealtimePipelineDemo:
             width = capture.get(cv2.CAP_PROP_FRAME_WIDTH)
             height = capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
+            #frame counting variables for tracking and display
             frame_counter = 0
             fps_frame_counter = 0
             fps_timer_start = cv2.getTickCount()
@@ -464,11 +469,13 @@ class RealtimePipelineDemo:
             print(f"REALTIME PIPELINE: Processing every {self.process_every_n_frames} frames.")
             print(f"REALTIME PIPELINE: Press CTRL+C to exit or q to exit.")
 
+            #start jetson, for metrics access
             if self.jetson:
                 self.jetson.start()
 
-            self.detection_thread.start()
+            #starts the background threads
             self.analysis_thread.start()
+            self.detection_thread.start()
 
             # The main loop, continues until quit
             while True:
@@ -478,29 +485,39 @@ class RealtimePipelineDemo:
                     print("REALTIME PIPELINE: Failed to capture frame.")
                     continue
 
+                #creates a copy of original to annotate
                 display_frame = frame.copy()
 
+                #calcualtes FPS period every processing loop (n frames)
                 fps_frame_counter += 1
                 if fps_frame_counter >= 30:
                     fps_timer_end = cv2.getTickCount()
                     elapsed_time = (fps_timer_end - fps_timer_start) / cv2.getTickFrequency()
                     current_fps = fps_frame_counter / elapsed_time
+                    #resets variables for next calculation period
                     fps_timer_start = cv2.getTickCount()
                     fps_frame_counter = 0
 
+                #increments total count
                 frame_counter += 1
 
+                #only processes motion detection at defined intervals
                 if frame_counter % self.process_every_n_frames == 0:
                     try:
+                        #calls motion detection, returns a boolean
                         motion_detected = self.detect_motion(frame)
                     except Exception as e:
                         print(f"REALTIME PIPELINE: Error detecting motion: {e}")
                         motion_detected = False
 
+                    #initilises a motion detection cooldown logic (minimise multiple detections)
                     current_time = time.time()
                     time_since_last_detection = current_time - self.last_detection_time
 
+                    #Starts motion detection if conditions are met: above motion detection threshold, not currently collecting frames
+                    #and not within the cooldown period
                     if motion_detected and not self.collecting and time_since_last_detection> self.detection_cooldown:
+                        #Initialises new collection sequence
                         print("REALTIME PIPELINE: Motion Detected starting to collect")
                         self.collecting = True
                         self.collected_frames = []
@@ -508,70 +525,85 @@ class RealtimePipelineDemo:
                         self.last_detection_time = current_time
                         print(f"REALTIME PIPELINE: Starting Motion detection cooldown period of {self.detection_cooldown} seconds.")
                     elif motion_detected and time_since_last_detection <= self.detection_cooldown:
+                        #prints output if motion is detected but still in cooldown
                         print("REALTIME PIPELINE: In Motion detection cooldown period.")
 
+                #Frame collection process, if in collection sequence
                 if self.collecting:
+                    #frame is appended to frame array, of defined length
                     self.collected_frames.append(frame.copy())
+                    #checks if array is the size required for analysis
                     if len(self.collected_frames) >= self.frames_needed:
                         print("REALTIME PIPELINE: Collection complete")
                         try:
+                            #adds array to queue for analysis in thread
                             self.analysis_queue.put_nowait((self.collected_frames.copy(), self.collect_start))
                         except:
                             print("REALTIME PIPELINE: Analysis queue full")
-
+                        #resets collection state for the next trigger event
                         self.collecting = False
                         self.collected_frames = []
 
-
+                #Object detection results processing
                 try:
+                    # process all avaialble detections
                     while not self.result_queue.empty():
-                        # frame, roi_frames, confidence, bbox, frame_counter = self.result_queue.get_nowait()
+                        # gets the full results from the object detection thread via result queue
                         frame, roi_frames, confidence, frame_counter = self.result_queue.get_nowait()
                         print(f"REALTIME PIPELINE: Recieved detection result For frame:  {frame_counter}, Confidence: {confidence}")
+                        #checks detection confidence is above a set level
                         if confidence > 0.75:
-                            # self.detection_age = 0
+                            #updates the pipeline state and adds annotations to display frame
                             self.detection_confidence = confidence
                             print(f"REALTIME PIPELINE: Confidence sufficiently high: {confidence:.2f}")
                             cv2.putText(display_frame, f"Crustacean Detection Confidence: {confidence:.2f}", (10, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255, 0, 0), 2)
                             try:
+                                #incrments the total detection count
                                 self.detection_count += 1
-                                #Calling the save detection processes in another thread with all the detection data
+                                #defines parameters and spawns thread to start processing
                                 saving_thread = SaveDetectionThread(frame.copy(), roi_frames, confidence, frame_counter)
                                 saving_thread.start()
 
                             except Exception as e:
                                 print(f'REALTIME PIPELINE: ERROR while implementing SaveDetectionThread: {e}')
-                            # clean memory
+                            # cleans memory
                             del roi_frames, confidence
                             gc.collect()
                 except Exception as e:
                     print(f"REALTIME PIPELINE: Detection Queue empty. Further Details: {e}")
 
+                #a visual indicator to display the state collection process
+                if self.collecting:
+                    status = f"REALTIME PIPELINE: Collecting frames {len(self.collected_frames)}/{self.frames_needed}"
+                    cv2.putText(display_frame, status, (320, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+                else:
+                    status = f"REALTIME PIPELINE: Monitoring and Ready for collection"
+                    cv2.putText(display_frame, status, (320, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
 
-                status = f"REALTIME PIPELINE: Collecting frames {len(self.collected_frames)}/{self.frames_needed}"
-                cv2.putText(display_frame, status, (320, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
-
+                # a visual indicator to display the state of analysis process
                 if not self.analysis_queue.empty():
-                    cv2.putText(display_frame, "ANALYZING FRAMES...", (440, 340), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+                    cv2.putText(display_frame, "ANALYZING THREAD ACTIVE", (440, 340), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
 
+                # a visual indicator to display the state of detection process
                 if not self.detection_queue.empty():
-                    cv2.putText(display_frame, "DETECTING OBJECT", (460, 380), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+                    cv2.putText(display_frame, "DETECTION THREAD ACTIVE", (460, 380), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
 
+                # a visual indicator to display the count of total detections
                 cv2.putText(display_frame, f"DETECTION COUNT: {self.detection_count}", (480, 420), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
 
+                #gathers hardware metrics via function
                 hardware_metrics = self.get_metrics()
                 if frame_counter % self.process_every_n_frames == 0:
                     hardware_metrics = self.get_metrics()
-                #builds an overlay string to be displayed
-                display_info = f"Resolution: {width}x{height}, FPS: {current_fps}"
-                # Adds text overlay to frame. Some is self explanatory. (10, 10) = (left, top). 0.5 = font size. (0, 255, 0) = hex colour green. 2 = text thickness
-                cv2.putText(display_frame, display_info, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                #Adds calculated details to display frame
+                # display_info = f"Resolution: {width}x{height}, FPS: {current_fps}"
+                cv2.putText(display_frame, f"Resolution: {width}x{height}, FPS: {current_fps}", (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-
+                #Adds gathered hardware metrics to display frame
                 cv2.putText(display_frame, f"CPU: {hardware_metrics['cpu_percent']}%", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                cv2.putText(display_frame, f"RAM: {hardware_metrics['ram_percent']}%", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                 cv2.putText(display_frame, f"CPU Temp: {hardware_metrics['cpu_temp']} celsius", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                cv2.putText(display_frame, f"GPU: {hardware_metrics['gpu_temp']} celsius", (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv2.putText(display_frame, f"RAM: {hardware_metrics['ram_percent']}%", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                # cv2.putText(display_frame, f"GPU: {hardware_metrics['gpu_temp']} celsius", (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
                 # displys the frame
                 cv2.imshow('Live Feed', display_frame)
@@ -581,13 +613,13 @@ class RealtimePipelineDemo:
                     print("REALTIME PIPELINE: User pressed q to exit. Shutting down.")
                     break
 
-
+        #Error handling to deal with the use of ctrl+c as a quiting mechanism and any internal errors
         except KeyboardInterrupt:
             print("REALTIME PIPELINE: Interrupted by Keyboard.")
         except Exception as e:
             print(f"REALTIME PIPELINE: Error has arisen due to: {e}")
         finally:
-            # Resouces minimisation after loops have completed
+            #Regardless of quit methods all threads and resources are actively minimised
             capture.release()
             cv2.destroyAllWindows()
             od.unload_model()
@@ -601,7 +633,7 @@ class RealtimePipelineDemo:
                 self.analysis_thread.join()
 
 
-            #Calulates the runtime and provides a summarisation of the overall run
+            #Calulates the runtime and provides a small summarisation of the overall run
             runtime = time.time() - self.start_time
             print("\n --- FINAL SUMMARY --- ")
             print(f"    High confidence detections saved: {self.detection_count}")
@@ -611,9 +643,10 @@ class RealtimePipelineDemo:
 
 
 if __name__ == "__main__":
-    # An updated approach. Argparse approach means the number of runs can added to the cli command
+    # sets up the command line argument parsing
     parser = argparse.ArgumentParser(description='Run a CV pipeline with camera capture and processing')
     parser.add_argument("--frames_interval", type=int, default=30, help="Process every N frmaes (30 default)")
+    # parses argument and executes pipeline
     args = parser.parse_args()
     realtime_pipeline = RealtimePipelineDemo(process_every_n_frames=args.frames_interval)
     realtime_pipeline.run()
