@@ -42,7 +42,7 @@ def unload_model():
 
 
 def process(frames):
-    """Main detection function. Receives cropped ROI's and detects the keypoints co-oridinates within each
+    """Main detection function. Receives cropped ROI's and detects the keypoint co-ordinates within each
      before returning as a flattened array"""
 
     # Load TFLite model and allocate tensors.

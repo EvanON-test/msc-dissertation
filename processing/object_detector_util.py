@@ -14,8 +14,7 @@ preloaded_interpreter = None
 preloaded_input_details = None
 preloaded_output_details = None
 
-#TODO: implement any useful processes from savepoint version to demo version
-#TODO: comment all relevant stuff, even the simple stuff
+
 #loads model using global variables
 def load_model():
     global preloaded_interpreter
@@ -46,7 +45,7 @@ def unload_model():
     except Exception as e:
         print("OD UTIL: Unloading OD failed due to: " + str(e))
 
-#TODO: RETURNED TO ORIGINAL LOGIC AS NO LONGER NEED BB'S AND CAUSING ISSUES
+#Returned to original logic after struggling with bounding box issues
 
 def process(savepoint):
 
