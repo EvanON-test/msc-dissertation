@@ -1,5 +1,5 @@
-#TODO: DONT FORGET TO cite the code sections you have used formally (gst, gfg etc)
-#TODO: Replace print with logging info for better threading output
+#TODO: Can replace print approach with logging approach for better threading output
+#TODO: Metrics Monitoring currently ON - comment out when not required
 import queue
 import time
 
@@ -446,7 +446,6 @@ class RealtimePipeline:
                     - Sends frame collection for analysis in AnalysisThread, via analysis queue (BC&FS)
                     - Singular frame rom Analysis is sent for detection in ObjectDetectionThread, via detection queue (OD)
                     - OD results sent via results thread to RealTimePipeline thread, updates overlay details and counts, sent to be saved vi results queue
-                    - Displayed live feed is updated with detection data and hardware metrics
                     - Loop continues until quit
                 """
         # initialises start time for performance metrics and calculations
