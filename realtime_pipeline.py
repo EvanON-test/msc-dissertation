@@ -1,5 +1,15 @@
 #TODO: Can replace print approach with logging approach for better threading output
 #TODO: Metrics Monitoring currently ON - comment out when not required
+"""
+The updated real-time headless implementation of the original Computer Vision Pipeline
+
+Multi-threaded approach constituting of:
+
+    - MainThread: Capture from camera, motion detection, display and orchestration
+    - AnalysisThread: Performs binary classification and frame selection
+    - ObjectDetectorThread: Processes frames selected for object detection
+    - SaveDetectionThread:   Processes keypoint detection and saved detection results
+"""
 import queue
 import time
 
@@ -11,6 +21,7 @@ import datetime
 import gc
 import csv
 import psutil
+#NOTE - MY QUEUE APPROACH IS LOOSELY BUILT UPON A BASIC TEMPLATE. REFERENCED AND CITED IN SECTION 5.1.2 OF REPORT
 from queue import Queue
 import tempfile
 
@@ -84,7 +95,6 @@ class SaveDetectionThread(Thread):
             flattened_coordinates = coordinates.flatten()
             with open(csv_path, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
-                #TODO: CITE PAPER?
                 #I updated their names to align with the details in the foundational paper
                 headers = ['crab_left_x1', 'crab_left_y1',
                            'crab_right_x2', 'crab_right_y2',
@@ -196,6 +206,7 @@ class RealtimeMonitor(Thread):
 
 
 
+
 class AnalysisThread(Thread):
     """A seperate thread that processes frames through binary classification and frame selection.
 
@@ -241,7 +252,7 @@ class AnalysisThread(Thread):
                 frames, start_frame = frame_data
                 print(f"ANALYSIS THREAD: Processing frames: {len(frames)} from start point {start_frame} for Binary Classifier and Frame Selector")
 
-                #TODO: CITE
+                #NOTE - THIS IS A MODIFIED VERSION OF USER POST. REFERENCED AND CITED IN SECTION 5.1.2.2 OF REPORT
                 #Creates temporary vido file (model utils require them for processing)
                 temp_video= tempfile.mktemp(suffix=".mp4")
                 height, width = frames[0].shape[:2]
@@ -351,7 +362,7 @@ class RealtimePipeline:
         """Initialises Thread and assigns queues. Assigns frame process cadence as 30 by default """
         # Forces os's primary display (negates issues arising due to ssh commands)
         os.environ['DISPLAY'] = ':0'
-        # TODO: CITE
+        #NOTE - THIS IS A MODIFIED VERSION OF USER POST. REFERENCED AND CITED IN SECTION 5.1.2 OF REPORT
         self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720, framerate=45/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=2 sync=false"
         self.process_every_n_frames = process_every_n_frames
 
@@ -370,7 +381,7 @@ class RealtimePipeline:
         # jtop to be interogated for metrics
         self.jetson = jtop()
 
-        # TODO: CITE
+        #NOTE - MY QUEUE APPROACH IS LOOSELY BUILT UPON A BASIC TEMPLATE. REFERENCED AND CITED IN SECTION 5.1.2 OF REPORT
         # THREADING FOCUS
         # FLOW REMINDER: MAIN -> ANALYSIS -> OBJECTDETECTION -> MAIN -> SAVEDETECTION
         self.analysis_queue = Queue(maxsize=1)  # Frame sequence sent to ANALYSIS
@@ -403,7 +414,7 @@ class RealtimePipeline:
 
 
 
-    #TODO: CITE ME
+    #NOTE - MY QUEUE APPROACH IS LOOSELY BUILT UPON A BASIC TEMPLATE. REFERENCED AND CITED IN SECTION 5.1.2.1 OF REPORT
     def detect_motion(self, frame):
         """Detects motion between consecutive frames by calculating the pixel difference between the current frame and the previous """
         #converts the frame to greyscale
@@ -563,8 +574,7 @@ class RealtimePipeline:
                                 # incrments the total detection count
                                 self.detection_count += 1
                                 # defines parameters and spawns thread to start processing
-                                saving_thread = SaveDetectionThread(frame.copy(), roi_frames, confidence,
-                                                                    frame_counter)
+                                saving_thread = SaveDetectionThread(frame.copy(), roi_frames, confidence, frame_counter)
                                 saving_thread.start()
 
                             except Exception as e:
