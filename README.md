@@ -2,12 +2,20 @@
 
 Working ML components for integration with Jetson Nano 2GB Developer Edition
 
+# Component     Nvidia Jetson Nano
 Versions:
-- Python 			3.9.18
-- cv2 				4.9.0
-- numpy 			1.26.4
-- tflite_runtime	2.13.0
-- PIL 				10.0.0
+- Python            3.9.18
+- TFLite Runtime	2.13.0
+- NumPy		        2.0.2
+- Pillow		    10.0.0
+- psutil		    7.0.0
+- jetson-stats	    4.3.2
+- OpenCV	        4.9.0 (With CUDA)
+- Jetpack	        4.6.6
+- CUDA	            10.2.300
+- cuDNN             8.2.1.32
+- TensorRT          8.2.1.8
+
 
 ---
 # How to use Real-time implementation on Jetson Nano 2GB Device

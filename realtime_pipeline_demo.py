@@ -329,9 +329,9 @@ class RealtimePipelineDemo:
         #Forces os's primary display (negates issues arising due to ssh commands)
         os.environ['DISPLAY'] = ':0'
         #NOTE - THIS IS A MODIFIED VERSION OF USER POST. REFERENCED AND CITED IN SECTION 5.1.2 OF REPORT
-        self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720, framerate=45/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=2 sync=false"
-        #TODO: remove the flip version when you aare DONE DONE :)
-        #self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720, framerate=45/1 ! nvvidconv ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=2 sync=false"
+        # self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720, framerate=45/1 ! nvvidconv ! videoflip method=rotate-180 ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=2 sync=false"
+
+        self.gst_stream = "nvarguscamerasrc ! video/x-raw(memory:NVMM),width=1280,height=720, framerate=45/1 ! nvvidconv ! video/x-raw,format=BGRx ! videoconvert ! video/x-raw,format=BGR ! appsink drop=true max-buffers=2 sync=false"
         self.process_every_n_frames = process_every_n_frames
 
         #most recent detection confidence
@@ -519,7 +519,7 @@ class RealtimePipelineDemo:
 
                     #Starts motion detection if conditions are met: above motion detection threshold, not currently collecting frames
                     #and not within the cooldown period
-                    if motion_detected and not self.collecting and time_since_last_detection> self.detection_cooldown:
+                    if motion_detected and not self.collecting and time_since_last_detection > self.detection_cooldown:
                         #Initialises new collection sequence
                         print("REALTIME PIPELINE: Motion Detected starting to collect")
                         self.collecting = True
